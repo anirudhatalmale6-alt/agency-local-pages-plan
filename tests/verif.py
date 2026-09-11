@@ -22,7 +22,7 @@ sys.path.insert(0, RACINE)
 from playwright.sync_api import sync_playwright
 
 from build import PROPOSE
-from donnees import GRILLE, SERVICES, TERMES
+from donnees import GRILLE, MARQUE, SERVICES, TERMES, TRAVAUX
 from villes import REGIONS, TOUTES
 
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8941").rstrip("/")
@@ -66,6 +66,58 @@ with sync_playwright() as p:
     pg.on("pageerror", lambda e: erreurs.append(str(e)))
 
     # ---- 1. les termes affiches sont EXACTEMENT les siens -----------------
+    # ---- 0. LE NOM ET LA LANGUE ------------------------------------------
+    # Il a donne les deux le 11 septembre : « Modersly / Is the name » et
+    # « Langue anglaise ».
+    pg.goto(f"{BASE}/index.html", wait_until="networkidle")
+    verif("le nom du studio est celui qu'il a donne",
+          MARQUE == "Modersly", MARQUE)
+    verif("index : la marque est affichee",
+          MARQUE in pg.inner_text(".marque"), pg.inner_text(".marque"))
+    verif("index : la page est declaree en anglais",
+          pg.evaluate("() => document.documentElement.lang") == "en",
+          pg.evaluate("() => document.documentElement.lang"))
+    # Aucun reste de francais dans le corps des pages principales : le client
+    # a demande l'anglais, et une page a moitie traduite se voit tout de suite.
+    FR = [" ville", " villes ", "Accueil", "Aucun ", " et le calcul",
+          "Ce qui manque", "prestations", "Toutes les"]
+    for f in ("index.html", "work.html", "services.html", "villes.html",
+              "plan.html", "ville-toronto.html", "region-europe.html"):
+        pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
+        c = pg.inner_text("body")
+        restes = [m for m in FR if m in c]
+        verif(f"{f} : aucun reste de francais", not restes, str(restes[:3]))
+
+    # ---- 0b. LE TRAVAIL MONTRE EST REEL ET EN LIGNE -----------------------
+    # Un site d'agence se juge sur ses realisations. Celles-ci sont de vrais
+    # livrables : la suite OUVRE chaque lien et exige un 200. Un portfolio qui
+    # pointe vers une page morte est pire qu'un portfolio vide.
+    pg.goto(f"{BASE}/work.html", wait_until="networkidle")
+    c = pg.inner_text("body")
+    for cle, nom, url, controles, resume, points in TRAVAUX:
+        verif(f"work : « {nom} » est presente", nom in c)
+        verif(f"work : le nombre de controles de {cle} est affiche",
+              str(controles) in c, str(controles))
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                code = r.status
+        except Exception as e:
+            code = str(e)
+        verif(f"work : le projet {cle} est REELLEMENT en ligne", code == 200,
+              f"{url} -> {code}")
+    faux = pg.evaluate("""() => ({
+        citations: document.querySelectorAll('blockquote, .temoignage, .quote').length,
+        logos: document.querySelectorAll('.logos img, .logo-wall img').length })""")
+    verif("work : aucune citation attribuee ni mur de logos",
+          faux["citations"] == 0 and faux["logos"] == 0, str(faux))
+    # Et tout projet montre porte un lien SORTANT vers le site reel.
+    liens_proj = pg.evaluate("""() => [...document.querySelectorAll('a.proj')]
+        .map(a => a.getAttribute('href'))""")
+    verif("work : chaque projet pointe vers un site externe reel",
+          len(liens_proj) == len(TRAVAUX)
+          and all(l.startswith("https://") for l in liens_proj),
+          str(liens_proj[:2]))
+
     verif("les onze termes recopies sont ceux du tableur",
           TERMES == termes_xlsx,
           str([t for t in termes_xlsx if t not in TERMES][:3]))
@@ -120,6 +172,8 @@ with sync_playwright() as p:
         verif(f"ville-{v[0]} : nomme la ville", v[1] in c)
         verif(f"ville-{v[0]} : porte le bloc de ce qui manque",
               "needs local input" in bas, "bloc absent")
+        verif(f"ville-{v[0]} : le titre est en anglais",
+              "Web development in" in c, c[:60])
         verif(f"ville-{v[0]} : les quatre services y figurent",
               all(s[1].replace("&amp;", "&") in c for s in SERVICES),
               str([s[1] for s in SERVICES if s[1].replace("&amp;", "&") not in c]))
@@ -139,13 +193,13 @@ with sync_playwright() as p:
         robots = pg.evaluate("() => document.querySelector('meta[name=robots]')"
                              "?.getAttribute('content')")
         verif(f"{f} : noindex", robots and "noindex" in robots, str(robots))
-        verif(f"{f} : le bandeau dit que ce n'est pas en ligne",
-              "pas un site en ligne" in pg.inner_text("body"))
+        verif(f"{f} : le bandeau dit que c'est un apercu",
+              "Preview." in pg.inner_text("body"))
 
     # ---- 6. aucun tarif --------------------------------------------------
     # Regle deja posee sur le site de l'agence : aucune somme affichee.
-    for f in ("index.html", "plan.html", "service-web-development.html",
-              "ville-montreal.html"):
+    for f in ("index.html", "work.html", "plan.html",
+              "service-web-development.html", "ville-montreal.html"):
         pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
         c = pg.inner_text("body")
         verif(f"{f} : aucun montant affiche",
@@ -154,8 +208,8 @@ with sync_playwright() as p:
 
     # ---- 7. aucun lien mort ----------------------------------------------
     liens = set()
-    for f in ("index.html", "services.html", "villes.html", "plan.html",
-              "ville-toronto.html", "service-web-engineering.html"):
+    for f in ("index.html", "work.html", "services.html", "villes.html",
+              "plan.html", "ville-toronto.html", "service-web-engineering.html"):
         pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
         for href in pg.evaluate("() => [...document.querySelectorAll('a')]"
                                 ".map(a => a.getAttribute('href'))"):
@@ -226,7 +280,7 @@ with sync_playwright() as p:
 
     # ---- 10. LE THEME NOIR -----------------------------------------------
     # Demande le 11 septembre. Lu sur la couleur CALCULEE par le navigateur.
-    for f in ("index.html", "ville-dubai.html", "plan.html"):
+    for f in ("index.html", "work.html", "ville-dubai.html", "plan.html"):
         pg.goto(f"{BASE}/{f}", wait_until="networkidle")
         fond = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
         txt = pg.evaluate("() => getComputedStyle(document.body).color")
@@ -238,9 +292,9 @@ with sync_playwright() as p:
     verif("aucune erreur JavaScript", not erreurs, str(erreurs[:2]))
 
     D = "/var/lib/freelancer/projects/40478471/"
-    for f, nom in (("index.html", "seo-1-accueil"), ("plan.html", "seo-2-plan"),
-                   ("ville-dubai.html", "seo-3-ville"),
-                   ("region-asie.html", "seo-4-region")):
+    for f, nom in (("index.html", "mo-1-accueil"), ("work.html", "mo-2-work"),
+                   ("ville-dubai.html", "mo-3-ville"),
+                   ("plan.html", "mo-4-plan")):
         pg.goto(f"{BASE}/{f}", wait_until="networkidle")
         pg.wait_for_timeout(300)
         pg.screenshot(path=D + nom + ".png")

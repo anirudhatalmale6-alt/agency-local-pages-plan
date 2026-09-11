@@ -17,7 +17,12 @@ commercial, pas une optimisation.
 # il dit exactement ce qui manque plutot que « a definir ».
 VIDE = "Needs local input"
 
-MARQUE = "JNCORP Studio"
+# LE NOM. Il l'a donne le 11 septembre : « Modersly / Is the name ».
+# Ecrit EXACTEMENT comme il l'a ecrit. Je lui ai demande de confirmer
+# l'orthographe une fois : un nom de marque mal ecrit sur 262 pages coute
+# plus cher a corriger qu'a verifier.
+MARQUE = "Modersly"
+BASELINE = "A modern web studio"
 
 # --- SES onze termes, bloc « CANADA & UNITED STATES TOP 100 CITIES » -------
 # Recopies mot pour mot depuis son tableur.
@@ -41,18 +46,72 @@ TERMES = [
 # d'avoir chacune la leur.
 SERVICES = [
     ("web-development", "Web development",
-     "Sites et applications sur mesure, du premier ecran a la mise en ligne.",
+     "Websites and applications built to order, from the first screen to launch.",
      ["Website Development", "Web Development Services",
       "Website Development Services", "Digital Development"]),
     ("web-design-development", "Web design &amp; development",
-     "La conception graphique et le developpement tenus par la meme equipe.",
+     "Design and engineering held by the same team, so nothing is lost between them.",
      ["Web Design and Development"]),
     ("web-application-development", "Web application development",
-     "Des outils metier qui tournent dans le navigateur, avec comptes et donnees.",
+     "Tools that run in the browser, with accounts, data and permissions.",
      ["Web App Development"]),
     ("web-engineering", "Web engineering",
-     "Reprise, fiabilisation et mise a l'echelle d'un site existant.",
+     "Taking over an existing site, making it reliable, and making it scale.",
      ["Web Solutions Development"]),
+]
+
+# --- LE TRAVAIL REEL ------------------------------------------------------
+# Ce sont de VRAIS livrables, en ligne, construits pour ce client. Aucun
+# projet invente, aucun logo d'une marque qu'on n'a pas servie, aucun
+# temoignage fabrique. `controles` est le nombre de controles automatiques
+# de chaque suite — un chiffre d'agence qu'on ne peut pas recompter est un
+# chiffre invente qui a juste l'air modeste.
+TRAVAUX = [
+    ("franchise-directory", "Franchise directory",
+     "https://anirudhatalmale6-alt.github.io/annuaire-franchises-demo/",
+     76,
+     "Two hundred brands, twenty categories, twenty-two countries. Cross "
+     "filters, a currency per country, comparison and an application form.",
+     ["Filters with predictive counters",
+      "Ranked on a common reference value, shown in local currency",
+      "French and English from a single data set"]),
+    ("hotel-franchising", "Hotel franchising",
+     "https://anirudhatalmale6-alt.github.io/annuaire-franchises-demo/hotellerie.html",
+     62,
+     "A separate section, because a hotel is not bought for a sum but per "
+     "key. Filter by hotel size, two fee bases, four contract types.",
+     ["Project cost computed, never drawn at random",
+      "The size filter asks for membership of a range",
+      "The trade's vocabulary rather than generic columns"]),
+    ("prestige-houses", "Prestige houses",
+     "https://anirudhatalmale6-alt.github.io/maisons-de-prestige/",
+     109,
+     "A black site, five stars. Management contracts, base and incentive "
+     "fees on two different bases, group contribution.",
+     ["A full dark design system, accessible in contrast",
+      "Five distinctions, four operating structures",
+      "Owner form and deep-linked detail sheets"]),
+]
+
+# Comment on travaille. Quatre etapes, pas un discours.
+ETAPES = [
+    ("Scope", "What the site has to do, who edits it afterwards, and what "
+              "happens when it is wrong. Written down before anything is drawn."),
+    ("Build", "One source of truth. Every page is generated, so a correction "
+              "lands everywhere at once instead of in the copy nobody opens."),
+    ("Prove", "Every project ships with an automatic check suite, run against "
+              "the published site &mdash; not against the version on my machine."),
+    ("Hand over", "The code, the generator and the checks. Nothing is locked "
+                  "to us, and nothing needs us to stay."),
+]
+
+# Ce qui fait varier un devis. A la place d'un tarif : les variables.
+VARIABLES = [
+    "How many pages, and how many of them are genuinely different",
+    "How many languages, and whether they share one data set",
+    "What you edit yourself after delivery",
+    "Which systems it has to talk to",
+    "What happens after launch: hosting, backups, corrections",
 ]
 
 # --- Les villes -----------------------------------------------------------

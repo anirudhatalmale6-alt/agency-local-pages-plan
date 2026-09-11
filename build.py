@@ -10,11 +10,12 @@ ville : c'est la difference entre un site local et une ferme de pages.
 import html
 import os
 
-from donnees import GRILLE, MARQUE, SERVICES, TERMES, VIDE
+from donnees import (BASELINE, ETAPES, GRILLE, MARQUE, SERVICES,
+                     TERMES, TRAVAUX, VARIABLES, VIDE)
 from villes import PAYS_NOM, REGIONS, TOUTES
 
 RACINE = os.path.dirname(os.path.abspath(__file__))
-VERSION_CSS = 2
+VERSION_CSS = 3
 E = html.escape
 ECRITES = set()
 
@@ -27,8 +28,9 @@ def tbd():
     return f'<span class="tbd">{VIDE}</span>'
 
 
-MENU = [("index.html", "Accueil"), ("services.html", "Services"),
-        ("villes.html", "Villes"), ("plan.html", "Le plan")]
+MENU = [("index.html", "Studio"), ("work.html", "Work"),
+        ("services.html", "Services"), ("villes.html", "Locations"),
+        ("plan.html", "The plan")]
 
 REG_NOM = {cle: nom for cle, nom, _ in REGIONS}
 VILLES_PAR_REGION = {cle: liste for cle, _, liste in REGIONS}
@@ -48,11 +50,11 @@ def pays_nom(code):
 # La variete vient de l'angle de service, qui tourne, et des elements reels de
 # la ville (division, pays, langues) — pas d'adjectifs empiles.
 ANGLES = [
-    "Sites et applications sur mesure",
-    "Conception et developpement web",
-    "Applications web metier",
-    "Reprise et fiabilisation de sites",
-    "Developpement web complet",
+    "Websites and applications built to order",
+    "Web design and development",
+    "Business web applications",
+    "Taking over and stabilising an existing site",
+    "Full-stack web development",
 ]
 
 
@@ -60,21 +62,21 @@ def meta_ville(v, rang):
     slug, nom, division, pays, langues, region = v
     angle = ANGLES[rang % len(ANGLES)]
     lg = ", ".join(LANGUES_NOM.get(l, l) for l in langues[:2])
-    return (f"{angle} a {nom}, {division}, {pays_nom(pays)}. "
-            f"Quatre prestations, equipe jointe en {lg}. "
-            f"Page {REG_NOM[region].replace('&amp;', '&')}.")
+    return (f"{angle} in {nom}, {division}, {pays_nom(pays)}. "
+            f"Four services, reachable in {lg}. "
+            f"{REG_NOM[region].replace('&amp;', '&')} coverage.")
 
 
 LANGUES_NOM = {
-    "en": "anglais", "fr": "francais", "es": "espagnol", "de": "allemand",
-    "it": "italien", "nl": "neerlandais", "pt": "portugais", "sv": "suedois",
-    "da": "danois", "no": "norvegien", "fi": "finnois", "pl": "polonais",
-    "cs": "tcheque", "hu": "hongrois", "ro": "roumain", "bg": "bulgare",
-    "el": "grec", "hr": "croate", "ar": "arabe", "he": "hebreu",
-    "tr": "turc", "ja": "japonais", "zh": "chinois", "ko": "coreen",
-    "hi": "hindi", "th": "thai", "id": "indonesien", "ms": "malais",
-    "tl": "tagalog", "vi": "vietnamien", "si": "cingalais", "bn": "bengali",
-    "ur": "ourdou",
+    "en": "English", "fr": "French", "es": "Spanish", "de": "German",
+    "it": "Italian", "nl": "Dutch", "pt": "Portuguese", "sv": "Swedish",
+    "da": "Danish", "no": "Norwegian", "fi": "Finnish", "pl": "Polish",
+    "cs": "Czech", "hu": "Hungarian", "ro": "Romanian", "bg": "Bulgarian",
+    "el": "Greek", "hr": "Croatian", "ar": "Arabic", "he": "Hebrew",
+    "tr": "Turkish", "ja": "Japanese", "zh": "Chinese", "ko": "Korean",
+    "hi": "Hindi", "th": "Thai", "id": "Indonesian", "ms": "Malay",
+    "tl": "Tagalog", "vi": "Vietnamese", "si": "Sinhala", "bn": "Bengali",
+    "ur": "Urdu",
 }
 
 
@@ -83,7 +85,7 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
         f'<a href="{f}"{" aria-current=\"page\"" if f == (actuel or fichier) else ""}>{E(t)}</a>'
         for f, t in MENU)
     doc = f"""<!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -95,14 +97,14 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
 <body>
 
 <div class="avert"><div class="wrap">
-  <b>Plan de travail, pas un site en ligne.</b> Les pages de ville sont des
-  gabarits : elles attendent la matiere locale que toi seul as. Tant qu'elle
-  manque, elles sont en <code>noindex</code> &mdash;
-  <a href="plan.html">pourquoi, et le calcul</a>.
+  <b>Preview.</b> The studio name and legal entity are not settled, and the
+  location pages are still templates waiting on real local material. Every
+  page is <code>noindex</code> until then &mdash;
+  <a href="plan.html">why, and the numbers</a>.
 </div></div>
 
 <header class="top"><div class="wrap bar">
-  <a class="marque" href="index.html">{E(MARQUE)}</a>
+  <a class="marque" href="index.html"><span class="dot"></span>{E(MARQUE)}</a>
   <nav class="nav">{nav}</nav>
 </div></header>
 
@@ -111,8 +113,8 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
 </main>
 
 <footer class="pied"><div class="wrap">
-  {E(MARQUE)} &mdash; plan de pages locales. Aucun tarif, aucune reference
-  inventee, aucune page publiee.
+  {E(MARQUE)} &mdash; {E(BASELINE.lower())}. No price list, no invented client,
+  no fabricated testimonial. Every project shown is live and linked.
 </div></footer>
 
 </body>
@@ -128,7 +130,7 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
 PROPOSE = {
     "villes": len(TOUTES),
     "services": len(SERVICES),
-    "fixes": 4,          # accueil, services, villes, plan
+    "fixes": 5,          # studio, work, services, locations, plan
     "regions": len(REGIONS),
 }
 PROPOSE["total"] = (PROPOSE["villes"] + PROPOSE["services"]
@@ -136,65 +138,144 @@ PROPOSE["total"] = (PROPOSE["villes"] + PROPOSE["services"]
 
 
 # ---------------------------------------------------------------------------
+def bloc_projet(t, rang):
+    cle, nom, url, controles, resume, points = t
+    lis = "".join(f"<li>{E(p)}</li>" for p in points)
+    return f"""<a class="proj" href="{E(url)}" target="_blank" rel="noopener">
+  <span>
+    <span class="num">{rang:02d} &mdash; live</span>
+    <h3>{E(nom)}</h3>
+    <p>{E(resume)}</p>
+    <ul>{lis}</ul>
+  </span>
+  <span class="meta">
+    <span class="ctrl">{controles}</span>
+    <span class="ctrl-l">automatic checks</span>
+    <span class="voir">Open the live site &rarr;</span>
+  </span>
+</a>"""
+
+
 def accueil():
-    cartes = "".join(f"""<div class="carte"><h3>{s[1]}</h3><p>{E(s[2])}</p>
-      <p class="aussi">Aussi cherche : {', '.join(E(a) for a in s[3])}</p></div>"""
-                     for s in SERVICES)
-    regions = "".join(f"""<a class="carte" href="region-{cle}.html">
-      <h3>{nom}</h3><p>{len(liste)} villes</p></a>"""
-                      for cle, nom, liste in REGIONS)
+    projets = "".join(bloc_projet(t, i) for i, t in enumerate(TRAVAUX, start=1))
+    services = "".join(f"""<div class="carte">
+      <span class="num">{i:02d}</span>
+      <h3>{s[1]}</h3><p>{E(s[2])}</p>
+      <p class="aussi">Also called: {', '.join(E(a) for a in s[3])}</p></div>"""
+                       for i, s in enumerate(SERVICES, start=1))
+    etapes = "".join(f"""<div class="carte"><span class="num">{i:02d}</span>
+      <h3>{E(nom)}</h3><p>{txt}</p></div>"""
+                     for i, (nom, txt) in enumerate(ETAPES, start=1))
+    total_controles = sum(t[3] for t in TRAVAUX)
+
     return f"""
 <section class="hero"><div class="wrap">
-  <h1>Le web, <em>ville par ville</em></h1>
-  <p class="lede">Quatre prestations, {n(PROPOSE['villes'])} villes, une page
-  par ville. Pas une page par synonyme et par ville : c'est ce qui separe un
-  site local d'une ferme de pages, et c'est ce qui decide si le domaine
-  survit.</p>
+  <h1 class="monte">We build the web, <em>and we prove it works.</em></h1>
+  <p class="lede monte">A small studio that ships sites and applications with
+  the checks that show they behave &mdash; run against the published site, not
+  against a copy on someone's laptop.</p>
+  <div class="actions monte">
+    <a class="btn" href="work.html">See the work</a>
+    <a class="btn btn-b" href="services.html">What we do</a>
+  </div>
   <div class="chiffres">
-    <div class="chiffre"><div class="v">{n(PROPOSE['villes'])}</div>
-      <div class="l">Villes</div></div>
-    <div class="chiffre"><div class="v">{PROPOSE['regions']}</div>
-      <div class="l">Regions</div></div>
-    <div class="chiffre"><div class="v">{PROPOSE['services']}</div>
-      <div class="l">Prestations</div></div>
-    <div class="chiffre"><div class="v">{n(PROPOSE['total'])}</div>
-      <div class="l">Pages au total</div></div>
+    <div class="chiffre"><div class="v">{len(TRAVAUX)}</div>
+      <div class="l">Projects live</div></div>
+    <div class="chiffre"><div class="v">{total_controles}</div>
+      <div class="l">Checks behind them</div></div>
+    <div class="chiffre"><div class="v">{n(len(TOUTES))}</div>
+      <div class="l">Cities covered</div></div>
+    <div class="chiffre"><div class="v">0</div>
+      <div class="l">Invented clients</div></div>
   </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-h"><span class="oeil">Selected work</span></div>
+  <div class="sec-h" style="margin-top:-14px"><h2>Three sites you can open
+    right now</h2>
+    <a class="plus" href="work.html">All work &rarr;</a></div>
+  <div class="travail">{projets}</div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <span class="oeil">What we do</span>
+  <div class="sec-h"><h2>Four services, eleven ways clients name them</h2>
+    <a class="plus" href="services.html">Details &rarr;</a></div>
+  <div class="grille g4">{services}</div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <span class="oeil">How it goes</span>
+  <div class="sec-h"><h2>Four steps, no discourse</h2></div>
+  <div class="grille g4">{etapes}</div>
+</div></section>
+
+<section class="appel"><div class="wrap">
+  <h2>Tell us what it has to do.</h2>
+  <p class="lede">There is no price list here, because a figure quoted before
+  the scope is known is wrong in one direction or the other. Five things move
+  it, and they are on the services page.</p>
   <div class="actions">
-    <a class="btn" href="villes.html">Parcourir les villes</a>
-    <a class="btn btn-b" href="plan.html">Le calcul, et pourquoi pas 190 500</a>
+    <a class="btn" href="services.html">See what moves a quote</a>
+    <a class="btn btn-b" href="villes.html">Where we work</a>
   </div>
 </div></section>
+"""
 
+
+def page_travail():
+    projets = "".join(bloc_projet(t, i) for i, t in enumerate(TRAVAUX, start=1))
+    total = sum(t[3] for t in TRAVAUX)
+    return f"""
 <section class="sec"><div class="wrap">
-  <div class="sec-h"><h2>Les quatre regions</h2>
-    <a class="plus" href="villes.html">Toutes les villes &rarr;</a></div>
-  <div class="grille g4">{regions}</div>
+  <span class="oeil">Work</span>
+  <h1 class="titre">Everything here is live, and linked</h1>
+  <p class="chapeau">No case study for a client we never had, no logo wall, no
+  testimonial we wrote ourselves. {len(TRAVAUX)} projects, {total} automatic
+  checks behind them, and every link opens the real thing.</p>
 </div></section>
 
-<section class="sec"><div class="wrap">
-  <div class="sec-h"><h2>Quatre services, onze facons de les nommer</h2></div>
-  <p class="chapeau">Tes onze termes disent quatre choses. Les sept autres sont
-  des variantes d'ecriture du meme besoin : elles ont leur place <b>dans</b> la
-  page, pas chacune la leur.</p>
-  <div class="grille g2" style="margin-top:18px">{cartes}</div>
+<section class="sec" style="padding-top:0"><div class="wrap">
+  <div class="travail">{projets}</div>
+  <div class="encadre" style="margin-top:26px"><p style="margin:0">
+  <b>Why the check counts are on the page.</b> A studio figure nobody can
+  recount is an invented figure that merely sounds modest. Each number above is
+  the size of that project's own check suite, and each suite ships with its
+  project.</p></div>
 </div></section>
 """
 
 
 def services_index():
     lignes = "".join(f"""<a class="carte" href="service-{s[0]}.html">
-      <h3>{s[1]}</h3><p>{E(s[2])}</p></a>""" for s in SERVICES)
+      <span class="num">{i:02d}</span>
+      <h3>{s[1]}</h3><p>{E(s[2])}</p></a>"""
+                     for i, s in enumerate(SERVICES, start=1))
     tous = "".join(f"<li>{E(t)}</li>" for t in TERMES)
+    variables = "".join(f"<li>{E(v)}</li>" for v in VARIABLES)
     return f"""
 <section class="sec"><div class="wrap">
-  <h1 class="titre">Services</h1>
-  <p class="chapeau">Une page par service. Chacune nomme les variantes que les
-  gens tapent, ce qui couvre le vocabulaire sans multiplier les pages.</p>
-  <div class="grille g2" style="margin-top:20px">{lignes}</div>
+  <span class="oeil">Services</span>
+  <h1 class="titre">Four services</h1>
+  <p class="chapeau">One page each. Every page names the variants people
+  actually type, which covers the vocabulary without multiplying pages.</p>
+  <div class="grille g4" style="margin-top:26px">{lignes}</div>
+</div></section>
 
-  <div class="sec-h" style="margin-top:34px"><h2>Tes onze termes</h2></div>
-  <ul class="liste2">{tous}</ul>
+<section class="sec"><div class="wrap">
+  <div class="sec-h"><h2>What moves a quote</h2></div>
+  <p class="chapeau">Instead of a price list &mdash; which would be wrong in one
+  direction or the other before the scope is known &mdash; the five things that
+  decide it.</p>
+  <div class="encadre" style="margin-top:18px"><ol>{variables}</ol></div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-h"><h2>The eleven terms</h2></div>
+  <p class="chapeau">These are the words clients use for the four services
+  above. They describe four needs, not eleven.</p>
+  <ul class="liste2" style="margin-top:16px">{tous}</ul>
 </div></section>
 """
 
@@ -207,22 +288,22 @@ def page_service(s):
                       for cle, nom, _ in REGIONS)
     return f"""
 <section class="sec"><div class="wrap">
-  <nav class="fil"><a href="index.html">Accueil</a> &rsaquo;
-    <a href="services.html">Services</a> &rsaquo; {nom}</nav>
+  <nav class="fil"><a href="index.html">Studio</a> /
+    <a href="services.html">Services</a> / {nom}</nav>
   <h1 class="titre">{nom}</h1>
   <p class="chapeau">{E(phrase)}</p>
 
-  <div class="sec-h" style="margin-top:28px"><h2>Aussi appele</h2></div>
-  <p>{', '.join(E(v) for v in variantes)}. Ce sont les memes projets ; la
-  facon de les nommer change d'un client a l'autre.</p>
+  <div class="sec-h" style="margin-top:34px"><h2>Also called</h2></div>
+  <p class="chapeau">{', '.join(E(v) for v in variantes)}. Same projects; the
+  name changes from one client to the next.</p>
 
-  <div class="sec-h" style="margin-top:28px"><h2>Ce que contient la page</h2></div>
-  <div class="encadre"><p>{tbd()}<br>
-  Ce que fait l'equipe, comment se deroule un projet, et ce qui fait varier un
-  devis. Le site de l'agence porte deja ce texte : il sera repris ici plutot
-  que reecrit, pour qu'il n'existe qu'a un seul endroit.</p></div>
+  <div class="sec-h" style="margin-top:34px"><h2>What this page will hold</h2></div>
+  <div class="encadre"><p style="margin:0">{tbd()}<br>
+  What the team does, how a project runs, and what moves a quote. The studio
+  pages already carry that text: it will be pulled in here rather than
+  rewritten, so it exists in one place only.</p></div>
 
-  <div class="sec-h" style="margin-top:28px"><h2>Ou</h2></div>
+  <div class="sec-h" style="margin-top:34px"><h2>Where</h2></div>
   <div class="villes-liens">{regions}</div>
   <div class="villes-liens" style="margin-top:10px">{exemples}</div>
 </div></section>
@@ -236,16 +317,17 @@ def villes_index():
                          for v in liste[:14])
         blocs += f"""<div class="sec-h" style="margin-top:30px">
             <h2>{nom}</h2>
-            <a class="plus" href="region-{cle}.html">Les {len(liste)} villes &rarr;</a></div>
+            <a class="plus" href="region-{cle}.html">All {len(liste)} cities &rarr;</a></div>
           <div class="villes-liens">{apercu}</div>"""
     return f"""
 <section class="sec"><div class="wrap">
-  <h1 class="titre">Villes</h1>
-  <p class="chapeau">{n(len(TOUTES))} villes, comme tu les as fixees :
-  {len(REGIONS[0][2])} pour les Etats-Unis et le Canada,
-  {len(REGIONS[1][2])} en Europe, {len(REGIONS[2][2])} au Moyen-Orient et
-  {len(REGIONS[3][2])} en Asie. Chaque ville a UNE page, qui couvre les quatre
-  prestations.</p>
+  <span class="oeil">Locations</span>
+  <h1 class="titre">Where we work</h1>
+  <p class="chapeau">{n(len(TOUTES))} cities: {len(REGIONS[0][2])} across the
+  United States and Canada, {len(REGIONS[1][2])} in Europe,
+  {len(REGIONS[2][2])} in the Middle East and {len(REGIONS[3][2])} in Asia.
+  One page per city, each covering all four services &mdash; not one page per
+  keyword per city.</p>
   {blocs}
 </div></section>
 """
@@ -263,14 +345,14 @@ def page_region(cle, nom, liste):
                          for v in par_pays[code])
         blocs += (f'<div class="sec-h" style="margin-top:26px">'
                   f'<h2>{E(pays_nom(code))}</h2>'
-                  f'<span class="note">{len(par_pays[code])} villes</span></div>'
+                  f'<span class="note">{len(par_pays[code])} cities</span></div>'
                   f'<div class="grille g4">{cartes}</div>')
     return f"""
 <section class="sec"><div class="wrap">
-  <nav class="fil"><a href="index.html">Accueil</a> &rsaquo;
-    <a href="villes.html">Villes</a> &rsaquo; {nom}</nav>
+  <nav class="fil"><a href="index.html">Studio</a> /
+    <a href="villes.html">Locations</a> / {nom}</nav>
   <h1 class="titre">{nom}</h1>
-  <p class="chapeau">{len(liste)} villes, groupees par pays.</p>
+  <p class="chapeau">{len(liste)} cities, grouped by country.</p>
   {blocs}
 </div></section>
 """
@@ -288,42 +370,42 @@ def page_ville(v, rang):
 
     alt = ""
     if len(langues) > 1:
-        alt = ('<p class="note">Ville multilingue (' +
+        alt = ('<p class="note">Multilingual city (' +
                ", ".join(LANGUES_NOM.get(l, l) for l in langues) +
                '). Les versions se declarent en <code>hreflang</code> sur une '
                'seule page, pas en dupliquant l\'adresse.</p>')
 
     return f"""
 <section class="sec"><div class="wrap">
-  <nav class="fil"><a href="index.html">Accueil</a> &rsaquo;
-    <a href="villes.html">Villes</a> &rsaquo;
-    <a href="region-{region}.html">{REG_NOM[region]}</a> &rsaquo; {E(nom)}</nav>
-  <h1 class="titre">Developpement web a {E(nom)}</h1>
+  <nav class="fil"><a href="index.html">Studio</a> /
+    <a href="villes.html">Locations</a> /
+    <a href="region-{region}.html">{REG_NOM[region]}</a> / {E(nom)}</nav>
+  <h1 class="titre">Web development in {E(nom)}</h1>
   <p class="chapeau">{E(division)}, {E(pays_nom(pays))} &middot;
     {", ".join(LANGUES_NOM.get(l, l) for l in langues)}</p>
   {alt}
 
-  <div class="sec-h" style="margin-top:26px"><h2>Ce qu'on fait ici</h2></div>
+  <div class="sec-h" style="margin-top:30px"><h2>What we do here</h2></div>
   <div class="grille g2">{services}</div>
 
-  <div class="sec-h" style="margin-top:32px"><h2>Ce qui manque sur cette page</h2></div>
+  <div class="sec-h" style="margin-top:38px"><h2>What this page still needs</h2></div>
   <div class="encadre encadre--alerte">
-    <p><b>C'est le seul endroit qui compte, et il est vide.</b></p>
+    <p><b>This is the only part that matters, and it is empty.</b></p>
     <ul>
-      <li>Un projet reel livre a {E(nom)} ou dans la region &mdash; {tbd()}</li>
-      <li>Le nom d'un client qui accepte d'etre cite &mdash; {tbd()}</li>
-      <li>Ce qui differe VRAIMENT ici : langue de travail, secteurs dominants,
-          obligations locales &mdash; {tbd()}</li>
+      <li>A project actually delivered in {E(nom)} or nearby &mdash; {tbd()}</li>
+      <li>A client willing to be named &mdash; {tbd()}</li>
+      <li>What genuinely differs here: working language, dominant sectors,
+          local obligations &mdash; {tbd()}</li>
     </ul>
-    <p class="note">Sans au moins un de ces trois elements, cette page dit la
-    meme chose que les {n(len(TOUTES) - 1)} autres, le nom de la ville
-    excepte. C'est ce que les moteurs appellent une page satellite, et la
-    sanction porte sur le domaine entier.</p>
+    <p class="note">Without at least one of those three, this page says the
+    same thing as the other {n(len(TOUTES) - 1)}, city name aside. That is what
+    search engines call a doorway page, and the penalty falls on the whole
+    domain. Which is why every one of these is <code>noindex</code> today.</p>
   </div>
 
-  <div class="sec-h" style="margin-top:32px"><h2>Autres villes &mdash;
+  <div class="sec-h" style="margin-top:38px"><h2>Other cities &mdash;
     {REG_NOM[region]}</h2>
-    <a class="plus" href="region-{region}.html">Toutes &rarr;</a></div>
+    <a class="plus" href="region-{region}.html">All &rarr;</a></div>
   <div class="villes-liens">{autres}</div>
 </div></section>
 """
@@ -333,23 +415,24 @@ def plan():
     g = GRILLE
     return f"""
 <section class="sec"><div class="wrap">
-  <h1 class="titre">Le plan, et le calcul</h1>
-  <p class="chapeau">Le calcul vient de ton fichier
-  <code>Websites platform.xlsx</code>, avec tes propres nombres. Le plan, lui,
-  est celui que tu as fixe ensuite.</p>
+  <span class="oeil">The plan</span>
+  <h1 class="titre">Why {n(PROPOSE['total'])} pages and not {n(g['total'])}</h1>
+  <p class="chapeau">The arithmetic below comes from your own file,
+  <code>Websites platform.xlsx</code>, with your own numbers. The plan is the
+  one you set afterwards.</p>
 
-  <div class="sec-h" style="margin-top:28px"><h2>Ce que demandait la grille</h2></div>
+  <div class="sec-h" style="margin-top:34px"><h2>What the grid asked for</h2></div>
   <div class="enroule"><table class="tab">
-    <thead><tr><th>Bloc</th><th class="n">Calcul</th><th class="n">Pages</th></tr></thead>
+    <thead><tr><th>Block</th><th class="n">Calculation</th><th class="n">Pages</th></tr></thead>
     <tbody>
-      <tr><td>Mondial &mdash; {g['modeles_mondiaux']} modeles de mots-cles</td>
+      <tr><td>Worldwide &mdash; {g['modeles_mondiaux']} keyword templates</td>
         <td class="n">{g['modeles_mondiaux']} &times; {g['pays']} &times;
           {g['villes_par_pays']} &times; {g['langues_par_pays']}</td>
         <td class="n">{n(g['total_mondial'])}</td></tr>
-      <tr><td>Canada + Etats-Unis</td>
+      <tr><td>Canada + United States</td>
         <td class="n">{g['termes_na']} &times; {g['villes_na']}</td>
         <td class="n">{n(g['total_na'])}</td></tr>
-      <tr><td>Variante francaise (Canada)</td>
+      <tr><td>French variant (Canada)</td>
         <td class="n">{g['termes_na']} &times; {g['villes_fr_ca']}</td>
         <td class="n">{n(g['total_fr'])}</td></tr>
       <tr class="total"><td><b>Total</b></td><td class="n"></td>
@@ -357,55 +440,59 @@ def plan():
     </tbody>
   </table></div>
 
-  <div class="sec-h" style="margin-top:32px"><h2>Ce qui est construit</h2></div>
+  <div class="sec-h" style="margin-top:38px"><h2>What is built</h2></div>
   <div class="enroule"><table class="tab">
-    <thead><tr><th>Pages</th><th class="n">Nombre</th></tr></thead>
+    <thead><tr><th>Pages</th><th class="n">Count</th></tr></thead>
     <tbody>
-      <tr><td>Une page par ville &mdash; 100 USA &amp; Canada, 50 Europe,
-        50 Moyen-Orient, 50 Asie</td>
+      <tr><td>One page per city &mdash; 100 USA &amp; Canada, 50 Europe,
+        50 Middle East, 50 Asia</td>
         <td class="n">{n(PROPOSE['villes'])}</td></tr>
-      <tr><td>Une page par region</td><td class="n">{PROPOSE['regions']}</td></tr>
-      <tr><td>Une page par service</td><td class="n">{PROPOSE['services']}</td></tr>
-      <tr><td>Accueil, services, villes, plan</td>
+      <tr><td>One page per region</td><td class="n">{PROPOSE['regions']}</td></tr>
+      <tr><td>One page per service</td><td class="n">{PROPOSE['services']}</td></tr>
+      <tr><td>Studio, work, services, locations, plan</td>
         <td class="n">{PROPOSE['fixes']}</td></tr>
       <tr class="total"><td><b>Total</b></td>
         <td class="n"><b>{n(PROPOSE['total'])}</b></td></tr>
     </tbody>
   </table></div>
-  <p class="note" style="margin-top:14px">Soit
-  {g['total'] // PROPOSE['total']} fois moins de pages que la grille, et des
-  pages qu'on peut reellement remplir.</p>
+  <p class="note" style="margin-top:16px">{g['total'] // PROPOSE['total']} times
+  fewer pages than the grid &mdash; and pages that can actually be filled.</p>
 
-  <div class="sec-h" style="margin-top:32px"><h2>Pourquoi pas les {n(g['total'])}</h2></div>
+  <div class="sec-h" style="margin-top:38px"><h2>Four reasons</h2></div>
   <div class="grille g2">
-    <div class="carte"><h3>Il n'y avait pas {n(g['total'])} textes a ecrire</h3>
-      <p>Il y en avait un, repete. « Web Development » et « Website
-      Development » ne sont pas deux metiers : ce sont deux orthographes. Une
-      page par orthographe et par ville, c'est le meme texte
-      {g['termes_na']} fois dans chaque ville.</p></div>
-    <div class="carte"><h3>Le nom de la chose</h3>
-      <p>Les moteurs appellent ca des pages satellites. La sanction ne porte
-      pas sur la page, elle porte sur le <b>domaine</b> : le risque n'est pas
-      « ces pages ne marcheront pas », c'est « le site entier disparait ».</p></div>
-    <div class="carte"><h3>Les meta descriptions</h3>
-      <p>Une par page, toutes differentes &mdash; un controle le verifie sur
-      les {n(PROPOSE['total'])} pages. Une description dupliquee est remplacee
-      par un extrait choisi par le moteur : l'ecrire une fois pour toutes
-      revient a ne pas l'ecrire.</p></div>
-    <div class="carte"><h3>Ce que je ne peux pas inventer</h3>
-      <p>Ce qui differencie une page locale, c'est un client, un projet, un
-      chiffre dans cette ville. Ecrire « nous accompagnons les entreprises de
-      Calgary depuis 2019 » sans que ce soit vrai n'est pas une optimisation,
-      c'est une affirmation fausse sous ton nom.</p></div>
+    <div class="carte"><span class="num">01</span>
+      <h3>There were never {n(g['total'])} texts to write</h3>
+      <p>There was one, repeated. &ldquo;Web Development&rdquo; and
+      &ldquo;Website Development&rdquo; are not two trades, they are two
+      spellings. One page per spelling per city is the same text
+      {g['termes_na']} times in every city.</p></div>
+    <div class="carte"><span class="num">02</span>
+      <h3>The name of the thing</h3>
+      <p>Search engines call them doorway pages, and the penalty lands on the
+      <b>domain</b>, not the page. The risk is not &ldquo;these pages will not
+      rank&rdquo;, it is &ldquo;the whole site disappears&rdquo;. For a studio
+      that sells web work, that is the worst possible advertisement.</p></div>
+    <div class="carte"><span class="num">03</span>
+      <h3>Meta descriptions</h3>
+      <p>One per page, all different &mdash; checked across all
+      {n(PROPOSE['total'])}. A duplicated description is discarded and replaced
+      by a snippet the engine picks, so writing one for all of them is the same
+      as writing none.</p></div>
+    <div class="carte"><span class="num">04</span>
+      <h3>What cannot be invented</h3>
+      <p>What makes a local page local is a client, a project, a number in that
+      city. Writing &ldquo;serving Calgary businesses since 2019&rdquo; when
+      nobody said so is not optimisation, it is a false claim published under
+      your name.</p></div>
   </div>
 
-  <div class="sec-h" style="margin-top:32px"><h2>Ce dont j'ai besoin de toi</h2></div>
+  <div class="sec-h" style="margin-top:38px"><h2>What is needed to publish them</h2></div>
   <div class="encadre"><ol>
-    <li>Les villes ou tu as <b>reellement</b> un projet livre, un client ou un
-    contact. Trois suffisent pour commencer.</li>
-    <li>Pour chacune : ce qui y a ete fait, et si le client accepte d'etre cite.</li>
-    <li>Le nom et l'entite de l'agence &mdash; le site porte encore un nom
-    provisoire.</li>
+    <li>The cities where there is <b>genuinely</b> a delivered project, a
+    client or a contact. Three is enough to start.</li>
+    <li>For each: what was done there, and whether the client can be named.</li>
+    <li>The studio's registered name and legal entity &mdash; the site still
+    carries a name that has not been confirmed in writing.</li>
   </ol></div>
 </div></section>
 """
@@ -417,37 +504,40 @@ if __name__ == "__main__":
         css = f.read()
     assert css.count("/*") == css.count("*/"), "site.css : commentaires desequilibres"
 
-    page("index.html", f"{MARQUE} — developpement web, ville par ville",
-         f"Developpement web et applications sur mesure dans {len(TOUTES)} "
-         "villes : USA, Canada, Europe, Moyen-Orient, Asie. Une page par ville.",
+    page("index.html", f"{MARQUE} — {BASELINE.lower()}",
+         "A web studio that ships sites and applications with the automatic "
+         "checks that prove they work. Three projects live, all linked.",
          accueil())
+    page("work.html", f"Work — {MARQUE}",
+         f"{len(TRAVAUX)} projects, live and linked, with the size of each "
+         "one's automatic check suite. No invented client, no logo wall.",
+         page_travail())
     page("services.html", f"Services — {MARQUE}",
-         "Quatre prestations de developpement web, et les onze facons dont "
-         "elles sont nommees par les clients.", services_index())
-    page("villes.html", f"Villes — {MARQUE}",
-         f"Les {len(TOUTES)} villes couvertes : 100 en Amerique du Nord, "
-         "50 en Europe, 50 au Moyen-Orient, 50 en Asie.", villes_index())
-    page("plan.html", f"Le plan et le calcul — {MARQUE}",
-         "Ce que la grille de mots-cles demandait, ce qui est construit a la "
-         "place, et pourquoi une page par ville plutot que par synonyme.",
-         plan())
+         "Four web development services, the eleven names clients give them, "
+         "and the five things that move a quote.", services_index())
+    page("villes.html", f"Locations — {MARQUE}",
+         f"The {len(TOUTES)} cities covered: 100 across the USA and Canada, "
+         "50 in Europe, 50 in the Middle East, 50 in Asia.", villes_index())
+    page("plan.html", f"The plan and the numbers — {MARQUE}",
+         "What the keyword grid asked for, what is built instead, and why one "
+         "page per city rather than one per synonym.", plan())
 
     for cle, nom, liste in REGIONS:
         propre = nom.replace("&amp;", "&")
         page(f"region-{cle}.html", f"{propre} — {MARQUE}",
-             f"Developpement web dans {len(liste)} villes : {propre}. "
-             "Une page par ville, groupees par pays.",
+             f"Web development across {len(liste)} cities in {propre}. "
+             "One page per city, grouped by country.",
              page_region(cle, nom, liste), actuel="villes.html")
 
     for s in SERVICES:
         propre = s[1].replace("&amp;", "&")
         page(f"service-{s[0]}.html", f"{propre} — {MARQUE}",
-             f"{propre} : {s[2]} Aussi appele {', '.join(s[3])}.",
+             f"{propre}: {s[2]} Also called {', '.join(s[3])}.",
              page_service(s), actuel="services.html")
 
     for rang, v in enumerate(TOUTES):
         page(f"ville-{v[0]}.html",
-             f"Developpement web a {v[1]} — {MARQUE}",
+             f"Web development in {v[1]} — {MARQUE}",
              meta_ville(v, rang),
              page_ville(v, rang), actuel="villes.html")
 
