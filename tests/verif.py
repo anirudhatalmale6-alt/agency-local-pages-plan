@@ -21,7 +21,9 @@ sys.path.insert(0, RACINE)
 
 from playwright.sync_api import sync_playwright
 
-from donnees import GRILLE, PROPOSE, SERVICES, TERMES, VILLES
+from build import PROPOSE
+from donnees import GRILLE, SERVICES, TERMES
+from villes import REGIONS, TOUTES
 
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8941").rstrip("/")
 TABLEUR = os.path.normpath(os.path.join(RACINE, "..", "Websites platform.xlsx"))
@@ -90,20 +92,28 @@ with sync_playwright() as p:
           PROPOSE["total"] * 100 < GRILLE["total"],
           f'{PROPOSE["total"]} vs {GRILLE["total"]}')
 
-    # ---- 3. une page par VILLE, pas une par synonyme x ville -------------
-    pg.goto(f"{BASE}/villes.html", wait_until="networkidle")
-    liens = pg.evaluate("() => [...document.querySelectorAll('a.carte')]"
-                        ".map(a => a.getAttribute('href'))")
-    verif("villes : une page par ville, ni plus ni moins",
-          len(liens) == len(VILLES), f"{len(liens)} vs {len(VILLES)}")
-    verif("villes : aucune page ne combine un synonyme et une ville",
-          not any(re.search(r"ville-.*-(services|development)\.html", l) for l in liens),
-          str(liens[:3]))
+    # ---- 3. le compte de villes est celui qu'IL a fixe -------------------
+    attendus_regions = {"amerique-nord": 100, "europe": 50,
+                        "moyen-orient": 50, "asie": 50}
+    for cle, nom, liste in REGIONS:
+        verif(f"region {cle} : le nombre de villes est celui demande",
+              len(liste) == attendus_regions[cle],
+              f"{len(liste)} vs {attendus_regions[cle]}")
+        pg.goto(f"{BASE}/region-{cle}.html", wait_until="networkidle")
+        cartes = pg.locator("a.carte").count()
+        verif(f"region {cle} : la page liste toutes ses villes",
+              cartes == len(liste), f"{cartes} vs {len(liste)}")
+    verif("250 villes au total", len(TOUTES) == 250, str(len(TOUTES)))
+    verif("aucune page ne combine un synonyme et une ville",
+          not any("-services.html" in f"ville-{v[0]}.html" for v in TOUTES))
 
     # ---- 4. chaque page de ville dit ce qui lui manque -------------------
     # C'est la raison d'etre de la page : sans cette section, elle serait
     # exactement la page satellite que le plan denonce.
-    for v in VILLES:
+    echantillon = [TOUTES[0], TOUTES[60], TOUTES[99], TOUTES[100],
+                   TOUTES[140], TOUTES[150], TOUTES[190], TOUTES[200],
+                   TOUTES[249]]
+    for v in echantillon:
         pg.goto(f"{BASE}/ville-{v[0]}.html", wait_until="domcontentloaded")
         c = pg.inner_text("body")
         bas = c.lower()
@@ -124,7 +134,7 @@ with sync_playwright() as p:
 
     # ---- 5. rien n'est indexable tant que c'est vide ----------------------
     for f in ("index.html", "plan.html", "villes.html", "ville-toronto.html",
-              "service-web-development.html"):
+              "region-asie.html", "service-web-development.html"):
         pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
         robots = pg.evaluate("() => document.querySelector('meta[name=robots]')"
                              "?.getAttribute('content')")
@@ -169,7 +179,7 @@ with sync_playwright() as p:
     verif("la sonde de liens voit une page absente", absent == 404, str(absent))
 
     # ---- 8. mobile --------------------------------------------------------
-    for f in ("index.html", "plan.html", "ville-new-york.html"):
+    for f in ("index.html", "plan.html", "ville-dubai.html", "region-europe.html"):
         pg.set_viewport_size({"width": 390, "height": 800})
         pg.goto(f"{BASE}/{f}", wait_until="networkidle")
         pg.wait_for_timeout(200)
@@ -178,11 +188,59 @@ with sync_playwright() as p:
         verif(f"{f} : pas de debordement a 390 px", deb <= 0, str(deb))
     pg.set_viewport_size({"width": 1280, "height": 900})
 
+    # ---- 9. LES META DESCRIPTIONS ----------------------------------------
+    # Il les a demandees nommement. Une par page, TOUTES DIFFERENTES : une
+    # description dupliquee est ignoree par le moteur, qui la remplace par un
+    # extrait de son choix. L'ecrire une fois pour toutes revient a ne pas
+    # l'ecrire. On les lit sur les 262 pages servies, pas dans le generateur.
+    import glob
+    fichiers = sorted(os.path.basename(f)
+                      for f in glob.glob(os.path.join(RACINE, "*.html")))
+    descriptions = {}
+    vides, courtes = [], []
+    for f in fichiers:
+        with urllib.request.urlopen(f"{BASE}/{f}") as r:
+            texte = r.read().decode("utf-8")
+        m = re.search(r'<meta name="description" content="([^"]*)"', texte)
+        d = m.group(1) if m else ""
+        if not d:
+            vides.append(f)
+        elif len(d) < 50:
+            courtes.append((f, len(d)))
+        descriptions.setdefault(d, []).append(f)
+
+    verif(f"les {len(fichiers)} pages ont une meta description",
+          not vides, str(vides[:4]))
+    doublons = {d: fs for d, fs in descriptions.items() if len(fs) > 1}
+    verif("aucune meta description n'est repetee d'une page a l'autre",
+          not doublons,
+          str([(fs[0], fs[1]) for fs in list(doublons.values())[:2]]))
+    verif("aucune meta description n'est trop courte",
+          not courtes, str(courtes[:3]))
+    verif("autant de descriptions distinctes que de pages",
+          len(descriptions) == len(fichiers),
+          f"{len(descriptions)} vs {len(fichiers)}")
+    # Controle positif : la lecture des descriptions trouve bien quelque chose.
+    verif("la lecture des descriptions n'est pas vide",
+          len(descriptions) > 200, str(len(descriptions)))
+
+    # ---- 10. LE THEME NOIR -----------------------------------------------
+    # Demande le 11 septembre. Lu sur la couleur CALCULEE par le navigateur.
+    for f in ("index.html", "ville-dubai.html", "plan.html"):
+        pg.goto(f"{BASE}/{f}", wait_until="networkidle")
+        fond = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
+        txt = pg.evaluate("() => getComputedStyle(document.body).color")
+        rgb = [int(x) for x in re.findall(r"\d+", fond)[:3]]
+        rgbt = [int(x) for x in re.findall(r"\d+", txt)[:3]]
+        verif(f"{f} : le fond est noir", max(rgb) < 40, fond)
+        verif(f"{f} : le texte est clair sur ce fond", min(rgbt) > 180, txt)
+
     verif("aucune erreur JavaScript", not erreurs, str(erreurs[:2]))
 
     D = "/var/lib/freelancer/projects/40478471/"
     for f, nom in (("index.html", "seo-1-accueil"), ("plan.html", "seo-2-plan"),
-                   ("ville-montreal.html", "seo-3-ville")):
+                   ("ville-dubai.html", "seo-3-ville"),
+                   ("region-asie.html", "seo-4-region")):
         pg.goto(f"{BASE}/{f}", wait_until="networkidle")
         pg.wait_for_timeout(300)
         pg.screenshot(path=D + nom + ".png")
