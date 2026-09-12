@@ -223,6 +223,10 @@ a.carte:hover{border-color:var(--trait-f);transform:translateY(-2px)}
 
 .pied{border-top:1px solid var(--trait);padding:34px 0 52px;
   color:var(--gris-f);font-size:14px}
+.pied-liens{display:flex;gap:24px;flex-wrap:wrap;padding-bottom:18px;
+  border-bottom:1px solid var(--trait)}
+.pied-liens a{color:var(--gris);text-decoration:none}
+.pied-liens a:hover{color:var(--txt)}
 .pied a{color:var(--gris)}
 
 @media (max-width:980px){

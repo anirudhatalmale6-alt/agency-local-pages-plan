@@ -15,7 +15,7 @@ from donnees import (BASELINE, ETAPES, GRILLE, IMAGES, MARQUE, SERVICES,
 from villes import PAYS_NOM, REGIONS, TOUTES
 
 RACINE = os.path.dirname(os.path.abspath(__file__))
-VERSION_CSS = 4
+VERSION_CSS = 5
 E = html.escape
 ECRITES = set()
 
@@ -58,9 +58,15 @@ def tbd():
     return f'<span class="tbd">{VIDE}</span>'
 
 
+# LE MENU PRINCIPAL. Il a entoure « Locations » et « The plan » en rouge avec
+# « Remove this » : les deux sortent du menu.
+#
+# LES PAGES, ELLES, RESTENT. Les 250 pages de ville sont la couche SEO — il l'a
+# dit lui-meme — et une page sans aucun lien interne est une page que personne
+# ne trouve, ni un visiteur ni un moteur. Elles passent donc dans le PIED DE
+# PAGE, qui est exactement ou un site range ses pages de localite.
 MENU = [("index.html", "Studio"), ("index.html#work", "Work"),
-        ("services.html", "Services"), ("villes.html", "Locations"),
-        ("images.html", "Images"), ("plan.html", "The plan")]
+        ("services.html", "Services"), ("images.html", "Images")]
 
 REG_NOM = {cle: nom for cle, nom, _ in REGIONS}
 VILLES_PAR_REGION = {cle: liste for cle, _, liste in REGIONS}
@@ -143,8 +149,15 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
 </main>
 
 <footer class="pied"><div class="wrap">
-  {E(MARQUE)} &mdash; {E(BASELINE.lower())}. No price list, no invented client,
-  no fabricated testimonial. Every project shown is live and linked.
+  <div class="pied-liens">
+    <a href="villes.html">Locations &mdash; {len(TOUTES)} cities</a>
+    <a href="services.html">Services</a>
+    <a href="images.html">Images</a>
+    <a href="plan.html">The plan</a>
+  </div>
+  <p style="margin:18px 0 0">{E(MARQUE)} &mdash; {E(BASELINE.lower())}. No price
+  list, no invented client, no fabricated testimonial. Every project shown is
+  live and linked.</p>
 </div></footer>
 
 <script>
