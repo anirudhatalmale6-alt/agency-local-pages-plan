@@ -22,13 +22,24 @@ sys.path.insert(0, RACINE)
 from playwright.sync_api import sync_playwright
 
 from build import PROPOSE
-from donnees import GRILLE, MARQUE, SERVICES, TERMES, TRAVAUX
+from donnees import GRILLE, IMAGES, MARQUE, SERVICES, TERMES, TRAVAUX
 from villes import REGIONS, TOUTES
 
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8941").rstrip("/")
 TABLEUR = os.path.normpath(os.path.join(RACINE, "..", "Websites platform.xlsx"))
 
 ok, ko = 0, []
+
+
+def _absent(url):
+    """Vrai si l'adresse ne repond PAS 200."""
+    try:
+        with urllib.request.urlopen(url) as r:
+            return r.status != 200
+    except urllib.error.HTTPError:
+        return True
+    except Exception:
+        return True
 
 
 def verif(nom, condition, detail=""):
@@ -81,7 +92,7 @@ with sync_playwright() as p:
     # a demande l'anglais, et une page a moitie traduite se voit tout de suite.
     FR = [" ville", " villes ", "Accueil", "Aucun ", " et le calcul",
           "Ce qui manque", "prestations", "Toutes les"]
-    for f in ("index.html", "work.html", "services.html", "villes.html",
+    for f in ("index.html", "services.html", "villes.html", "images.html",
               "plan.html", "ville-toronto.html", "region-europe.html"):
         pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
         c = pg.inner_text("body")
@@ -92,8 +103,14 @@ with sync_playwright() as p:
     # Un site d'agence se juge sur ses realisations. Celles-ci sont de vrais
     # livrables : la suite OUVRE chaque lien et exige un 200. Un portfolio qui
     # pointe vers une page morte est pire qu'un portfolio vide.
-    pg.goto(f"{BASE}/work.html", wait_until="networkidle")
+    # Le portfolio est desormais SUR L'ACCUEIL (« add the portfolio directly
+    # on the same link »). On le cherche donc la, dans la section #work.
+    pg.goto(f"{BASE}/index.html", wait_until="networkidle")
     c = pg.inner_text("body")
+    verif("le portfolio est sur l'accueil, pas sur une page separee",
+          pg.locator("#work").count() == 1, str(pg.locator("#work").count()))
+    verif("l'ancienne page work.html n'existe plus",
+          _absent(f"{BASE}/work.html"), "work.html repond encore")
     for cle, nom, url, controles, resume, points in TRAVAUX:
         verif(f"work : « {nom} » est presente", nom in c)
         verif(f"work : le nombre de controles de {cle} est affiche",
@@ -198,7 +215,7 @@ with sync_playwright() as p:
 
     # ---- 6. aucun tarif --------------------------------------------------
     # Regle deja posee sur le site de l'agence : aucune somme affichee.
-    for f in ("index.html", "work.html", "plan.html",
+    for f in ("index.html", "images.html", "plan.html",
               "service-web-development.html", "ville-montreal.html"):
         pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
         c = pg.inner_text("body")
@@ -208,7 +225,7 @@ with sync_playwright() as p:
 
     # ---- 7. aucun lien mort ----------------------------------------------
     liens = set()
-    for f in ("index.html", "work.html", "services.html", "villes.html",
+    for f in ("index.html", "services.html", "villes.html", "images.html",
               "plan.html", "ville-toronto.html", "service-web-engineering.html"):
         pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
         for href in pg.evaluate("() => [...document.querySelectorAll('a')]"
@@ -280,7 +297,7 @@ with sync_playwright() as p:
 
     # ---- 10. LE THEME NOIR -----------------------------------------------
     # Demande le 11 septembre. Lu sur la couleur CALCULEE par le navigateur.
-    for f in ("index.html", "work.html", "ville-dubai.html", "plan.html"):
+    for f in ("index.html", "images.html", "ville-dubai.html", "plan.html"):
         pg.goto(f"{BASE}/{f}", wait_until="networkidle")
         fond = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
         txt = pg.evaluate("() => getComputedStyle(document.body).color")
@@ -289,10 +306,90 @@ with sync_playwright() as p:
         verif(f"{f} : le fond est noir", max(rgb) < 40, fond)
         verif(f"{f} : le texte est clair sur ce fond", min(rgbt) > 180, txt)
 
+    # ---- 11. LE CIEL ETOILE ----------------------------------------------
+    # « Add stars in the main slider like a RR phantom » + « Rooftop ».
+    # Le ciel etoile de Rolls-Royce est dans le PAVILLON : les etoiles doivent
+    # donc etre concentrees EN HAUT. Un semis uniforme serait un fond spatial.
+    pg.set_viewport_size({"width": 1280, "height": 900})
+    pg.goto(f"{BASE}/index.html", wait_until="networkidle")
+    pg.wait_for_timeout(400)
+    etoiles = pg.evaluate("""() => [...document.querySelectorAll('.hero .ciel .et')]
+        .map(e => parseFloat(e.style.top))""")
+    verif("le hero porte un ciel etoile", len(etoiles) > 60, str(len(etoiles)))
+    haut = sum(1 for t in etoiles if t < 40)
+    verif("les etoiles sont concentrees en haut, comme un pavillon",
+          haut > len(etoiles) * 0.6, f"{haut}/{len(etoiles)} au-dessus de 40%")
+    verif("aucune etoile ne depasse la moitie basse du hero",
+          max(etoiles) < 85, f"la plus basse est a {max(etoiles)}%")
+    # Elles doivent etre VISIBLES, pas seulement presentes dans le HTML.
+    opacite = pg.evaluate("""() => {
+        const e = document.querySelector('.hero .ciel .et');
+        const s = getComputedStyle(e);
+        return { op: parseFloat(s.opacity), w: s.width, pos: s.position }; }""")
+    verif("les etoiles sont reellement visibles", opacite["op"] > 0.02,
+          str(opacite))
+    verif("le ciel ne capte pas les clics",
+          pg.evaluate("() => getComputedStyle(document.querySelector('.ciel'))"
+                      ".pointerEvents") == "none")
+
+    # ---- 12. LES EFFETS DEGRADENT PROPREMENT ------------------------------
+    # La classe qui cache les elements n'est posee QUE par le script. Si le
+    # JavaScript ne part pas, tout doit rester visible : un effet qui cache le
+    # contenu quand il echoue n'est pas un effet, c'est une panne.
+    visibles = pg.evaluate("""() => [...document.querySelectorAll('.rev')]
+        .filter(e => getComputedStyle(e).opacity === '0'
+                  && e.getBoundingClientRect().top < window.innerHeight).length""")
+    verif("aucun element revele ne reste invisible dans l'ecran",
+          visibles == 0, str(visibles))
+
+    # SANS JAVASCRIPT, rien ne doit rester invisible.
+    # Attention : inner_text renvoie le texte d'un element a opacity:0. Une
+    # verification « le texte est present » ne peut donc PAS echouer sur ce
+    # defaut — je l'ai ecrite ainsi une premiere fois et le controle positif
+    # est passe au vert alors que j'avais casse le repli. On mesure donc
+    # l'OPACITE CALCULEE, la seule chose qui distingue lisible d'invisible.
+    sans_js = nav.new_context(java_script_enabled=False)
+    pj = sans_js.new_page()
+    pj.set_viewport_size({"width": 1280, "height": 900})
+    pj.goto(f"{BASE}/index.html", wait_until="domcontentloaded")
+    pj.wait_for_timeout(300)
+    invisibles = pj.evaluate("""() => [...document.querySelectorAll('.rev')]
+        .filter(e => parseFloat(getComputedStyle(e).opacity) < 0.99)
+        .map(e => e.className)""")
+    verif("sans JavaScript : aucun element revele n'est masque",
+          not invisibles, str(invisibles[:3]))
+    verif("sans JavaScript : la classe d'animation n'est pas posee",
+          "anime" not in pj.evaluate("() => document.documentElement.className"),
+          pj.evaluate("() => document.documentElement.className"))
+    corps_sans_js = pj.inner_text("body")
+    for t in TRAVAUX:
+        verif(f"sans JavaScript : « {t[1]} » reste dans la page",
+              t[1] in corps_sans_js, t[1])
+    pj.close(); sans_js.close()
+
+    # ---- 13. LES CONSIGNES D'IMAGES ---------------------------------------
+    pg.goto(f"{BASE}/images.html", wait_until="networkidle")
+    c = pg.inner_text("body")
+    for nom, role, l, h, consigne in IMAGES:
+        verif(f"images : {nom} est listee", nom in c, nom)
+        verif(f"images : {nom} donne ses dimensions",
+              f"{l} × {h}" in c or f"{l} x {h}" in c, f"{l}x{h}")
+    # Les trois interdits doivent figurer DANS CHAQUE consigne : c'est ce qui
+    # empeche un visage genere ou un faux logo d'arriver dans le site.
+    for nom, role, l, h, consigne in IMAGES:
+        bas_c = consigne.lower()
+        verif(f"images : {nom} interdit les visages",
+              "no people" in bas_c or "no faces" in bas_c, consigne[-60:])
+        verif(f"images : {nom} interdit logo et texte",
+              "no logo" in bas_c and "no text" in bas_c, consigne[-60:])
+    verif("images : la page rappelle les trois regles",
+          "No recognisable faces" in c and "No logos" in c
+          and "No invented screenshots" in c)
+
     verif("aucune erreur JavaScript", not erreurs, str(erreurs[:2]))
 
     D = "/var/lib/freelancer/projects/40478471/"
-    for f, nom in (("index.html", "mo-1-accueil"), ("work.html", "mo-2-work"),
+    for f, nom in (("index.html", "mo-1-accueil"), ("images.html", "mo-2-images"),
                    ("ville-dubai.html", "mo-3-ville"),
                    ("plan.html", "mo-4-plan")):
         pg.goto(f"{BASE}/{f}", wait_until="networkidle")

@@ -79,6 +79,29 @@ img{max-width:100%}
 .chiffre .l{font-size:12px;color:var(--gris-f);text-transform:uppercase;
   letter-spacing:.1em;margin-top:2px}
 
+/* ---- LE CIEL ETOILE DU HERO --------------------------------------------
+   Il a demande « des etoiles dans le slider principal, comme une RR
+   Phantom » puis « Rooftop ». C'est le ciel etoile de Rolls-Royce : des
+   fibres optiques dans le PAVILLON, donc au PLAFOND. Les etoiles sont donc
+   denses en haut et s'eteignent vers le bas — un semis uniforme ferait un
+   fond spatial, pas un pavillon.
+
+   Aucune image : chaque etoile est un point CSS. Une photo de ciel pesant
+   400 Ko pour un effet qu'un dégradé et des points produisent est une
+   depense inutile sur la premiere chose que le visiteur telecharge. */
+.ciel{position:absolute;inset:0;overflow:hidden;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 42%,transparent 88%);
+  mask-image:linear-gradient(180deg,#000 0%,#000 42%,transparent 88%)}
+.et{position:absolute;border-radius:50%;background:#fff;
+  animation:scintille var(--d) ease-in-out infinite alternate;
+  animation-delay:var(--r)}
+@keyframes scintille{from{opacity:var(--o1)}to{opacity:var(--o2)}}
+
+/* Quelques etoiles plus chaudes, comme les fibres qui ne sont pas toutes
+   du meme blanc. Sans ca l'effet est trop propre pour etre credible. */
+.et.chaud{background:#FFF3D6}
+.et.vert{background:var(--accent);box-shadow:0 0 6px rgba(200,255,77,.7)}
+
 /* apparition douce — desactivee si l'utilisateur ne veut pas d'animation */
 .monte{opacity:0;transform:translateY(14px);animation:monte .7s cubic-bezier(.2,.7,.3,1) forwards}
 .monte:nth-child(2){animation-delay:.06s}
@@ -109,6 +132,23 @@ h1.titre{font-size:clamp(29px,4.6vw,50px);letter-spacing:-.04em;margin:0 0 14px;
 .btn-b{background:transparent;color:var(--txt);border-color:var(--trait-f)}
 .btn-b:hover{background:var(--panneau2);color:var(--txt)}
 .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
+
+/* ---- REVELATION AU DEFILEMENT ----------------------------------------
+   Ajoutee par le script en bas de page, et seulement si le visiteur accepte
+   les animations. L'element est visible par defaut : si le JavaScript ne
+   part pas, rien ne disparait. Un effet qui cache le contenu quand il
+   echoue n'est pas un effet, c'est une panne. */
+.rev{opacity:1}
+html.anime .rev{opacity:0;transform:translateY(22px);
+  transition:opacity .65s cubic-bezier(.2,.7,.3,1),
+             transform .65s cubic-bezier(.2,.7,.3,1)}
+html.anime .rev.vu{opacity:1;transform:none}
+
+/* Le trait qui se tire sous un lien de section */
+.plus{position:relative}
+.plus::after{content:"";position:absolute;left:0;right:100%;bottom:-3px;height:1px;
+  background:var(--accent);transition:right .3s cubic-bezier(.2,.7,.3,1)}
+.plus:hover::after{right:0}
 
 /* ---- travail ---- */
 .travail{display:grid;gap:18px}
@@ -206,4 +246,10 @@ a.carte:hover{border-color:var(--trait-f);transform:translateY(-2px)}
   .monte{animation:none;opacity:1;transform:none}
   .proj,.carte,.btn{transition:none}
   .proj:hover,a.carte:hover,.btn:hover{transform:none}
+  /* Les etoiles restent, elles ne clignotent plus. Retirer le ciel
+     entierement priverait ces visiteurs du dessin ; c'est le MOUVEMENT
+     qui gene, pas l'image. */
+  .et{animation:none;opacity:var(--o2)}
+  html.anime .rev{opacity:1;transform:none;transition:none}
+  .plus::after{transition:none}
 }

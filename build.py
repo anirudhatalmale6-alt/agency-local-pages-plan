@@ -10,14 +10,44 @@ ville : c'est la difference entre un site local et une ferme de pages.
 import html
 import os
 
-from donnees import (BASELINE, ETAPES, GRILLE, MARQUE, SERVICES,
+from donnees import (BASELINE, ETAPES, GRILLE, IMAGES, MARQUE, SERVICES,
                      TERMES, TRAVAUX, VARIABLES, VIDE)
 from villes import PAYS_NOM, REGIONS, TOUTES
 
 RACINE = os.path.dirname(os.path.abspath(__file__))
-VERSION_CSS = 3
+VERSION_CSS = 4
 E = html.escape
 ECRITES = set()
+
+
+def ciel(nb=110):
+    """Le pavillon etoile. Positions TIREES UNE FOIS avec une graine fixe :
+    sans elle, chaque generation deplacerait les etoiles et deux captures
+    prises a dix minutes d'intervalle ne se ressembleraient pas."""
+    import random as _r
+    rnd = _r.Random(20260911)
+    pts = []
+    for _ in range(nb):
+        # y**1.7 concentre les etoiles vers le HAUT : c'est un pavillon, pas
+        # un fond spatial.
+        y = round((rnd.random() ** 1.7) * 78, 2)
+        x = round(rnd.random() * 100, 2)
+        taille = rnd.choice([1, 1, 1, 1.5, 1.5, 2, 2.5])
+        o1 = round(rnd.uniform(.06, .22), 2)
+        o2 = round(rnd.uniform(.45, .95), 2)
+        duree = round(rnd.uniform(2.2, 6.5), 1)
+        retard = round(rnd.uniform(0, 5), 1)
+        classe = "et"
+        d = rnd.random()
+        if d < 0.16:
+            classe += " chaud"
+        elif d < 0.20:
+            classe += " vert"
+        pts.append(
+            f'<span class="{classe}" style="left:{x}%;top:{y}%;'
+            f'width:{taille}px;height:{taille}px;--o1:{o1};--o2:{o2};'
+            f'--d:{duree}s;--r:{retard}s"></span>')
+    return '<div class="ciel" aria-hidden="true">' + "".join(pts) + "</div>"
 
 
 def n(x):
@@ -28,9 +58,9 @@ def tbd():
     return f'<span class="tbd">{VIDE}</span>'
 
 
-MENU = [("index.html", "Studio"), ("work.html", "Work"),
+MENU = [("index.html", "Studio"), ("index.html#work", "Work"),
         ("services.html", "Services"), ("villes.html", "Locations"),
-        ("plan.html", "The plan")]
+        ("images.html", "Images"), ("plan.html", "The plan")]
 
 REG_NOM = {cle: nom for cle, nom, _ in REGIONS}
 VILLES_PAR_REGION = {cle: liste for cle, _, liste in REGIONS}
@@ -117,6 +147,26 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
   no fabricated testimonial. Every project shown is live and linked.
 </div></footer>
 
+<script>
+/* Les effets ne s'activent QUE si le visiteur accepte les animations, et le
+   contenu est visible par defaut : la classe qui le cache n'est posee que si
+   l'observateur existe vraiment. Un effet qui cache le contenu quand il
+   echoue n'est pas un effet, c'est une panne. */
+(function () {{
+  var bouge = window.matchMedia
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!bouge || !('IntersectionObserver' in window)) return;
+
+  document.documentElement.classList.add('anime');
+  var vus = new IntersectionObserver(function (entrees) {{
+    entrees.forEach(function (e) {{
+      if (e.isIntersecting) {{ e.target.classList.add('vu'); vus.unobserve(e.target); }}
+    }});
+  }}, {{ rootMargin: '0px 0px -8% 0px', threshold: 0.08 }});
+  document.querySelectorAll('.rev').forEach(function (el) {{ vus.observe(el); }});
+}})();
+</script>
+
 </body>
 </html>
 """
@@ -169,13 +219,15 @@ def accueil():
     total_controles = sum(t[3] for t in TRAVAUX)
 
     return f"""
-<section class="hero"><div class="wrap">
+<section class="hero">
+  {ciel()}
+  <div class="wrap">
   <h1 class="monte">We build the web, <em>and we prove it works.</em></h1>
   <p class="lede monte">A small studio that ships sites and applications with
   the checks that show they behave &mdash; run against the published site, not
   against a copy on someone's laptop.</p>
   <div class="actions monte">
-    <a class="btn" href="work.html">See the work</a>
+    <a class="btn" href="#work">See the work</a>
     <a class="btn btn-b" href="services.html">What we do</a>
   </div>
   <div class="chiffres">
@@ -190,29 +242,36 @@ def accueil():
   </div>
 </div></section>
 
-<section class="sec"><div class="wrap">
-  <div class="sec-h"><span class="oeil">Selected work</span></div>
-  <div class="sec-h" style="margin-top:-14px"><h2>Three sites you can open
-    right now</h2>
-    <a class="plus" href="work.html">All work &rarr;</a></div>
-  <div class="travail">{projets}</div>
+<section class="sec" id="work"><div class="wrap">
+  <span class="oeil rev">Selected work</span>
+  <div class="sec-h rev"><h2>Everything here is live, and linked</h2></div>
+  <p class="chapeau rev" style="margin-bottom:26px">No case study for a client
+  we never had, no logo wall, no testimonial we wrote ourselves.
+  {len(TRAVAUX)} projects, {total_controles} automatic checks behind them, and
+  every link opens the real thing.</p>
+  <div class="travail rev">{projets}</div>
+  <div class="encadre rev" style="margin-top:26px"><p style="margin:0">
+  <b>Why the check counts are on the page.</b> A studio figure nobody can
+  recount is an invented figure that merely sounds modest. Each number above is
+  the size of that project's own check suite, and each suite ships with its
+  project.</p></div>
 </div></section>
 
 <section class="sec"><div class="wrap">
-  <span class="oeil">What we do</span>
-  <div class="sec-h"><h2>Four services, eleven ways clients name them</h2>
+  <span class="oeil rev">What we do</span>
+  <div class="sec-h rev"><h2>Four services, eleven ways clients name them</h2>
     <a class="plus" href="services.html">Details &rarr;</a></div>
-  <div class="grille g4">{services}</div>
+  <div class="grille g4 rev">{services}</div>
 </div></section>
 
 <section class="sec"><div class="wrap">
-  <span class="oeil">How it goes</span>
-  <div class="sec-h"><h2>Four steps, no discourse</h2></div>
-  <div class="grille g4">{etapes}</div>
+  <span class="oeil rev">How it goes</span>
+  <div class="sec-h rev"><h2>Four steps, no discourse</h2></div>
+  <div class="grille g4 rev">{etapes}</div>
 </div></section>
 
 <section class="appel"><div class="wrap">
-  <h2>Tell us what it has to do.</h2>
+  <h2 class="rev">Tell us what it has to do.</h2>
   <p class="lede">There is no price list here, because a figure quoted before
   the scope is known is wrong in one direction or the other. Five things move
   it, and they are on the services page.</p>
@@ -306,6 +365,57 @@ def page_service(s):
   <div class="sec-h" style="margin-top:34px"><h2>Where</h2></div>
   <div class="villes-liens">{regions}</div>
   <div class="villes-liens" style="margin-top:10px">{exemples}</div>
+</div></section>
+"""
+
+
+def page_images():
+    lignes = ""
+    for nom, role, l, h, consigne in IMAGES:
+        lignes += f"""<div class="carte" style="margin-bottom:14px">
+          <span class="num">{l} &times; {h} px</span>
+          <h3 style="font-family:var(--mono);font-size:15px">{E(nom)}</h3>
+          <p style="margin-bottom:12px">{role}</p>
+          <div class="encadre" style="background:var(--noir2);padding:14px">
+            <p style="margin:0;font-family:var(--mono);font-size:13.5px;
+              line-height:1.62;color:var(--txt)">{E(consigne)}</p>
+          </div>
+        </div>"""
+    return f"""
+<section class="sec"><div class="wrap">
+  <span class="oeil">Images</span>
+  <h1 class="titre">{len(IMAGES)} images to generate</h1>
+  <p class="chapeau">You generate them, I place them. Each block below gives
+  the exact file name, the exact pixel size and the prompt to paste. Send them
+  back with those names and they drop straight in.</p>
+</div></section>
+
+<section class="sec" style="padding-top:0"><div class="wrap">
+  <div class="encadre encadre--alerte" style="margin-bottom:26px">
+    <p><b>Three rules that are in every prompt, and they are not decoration.</b></p>
+    <ul>
+      <li><b>No recognisable faces.</b> A generated face on a studio site reads
+      as a team photo &mdash; an invented person presented as a colleague.</li>
+      <li><b>No logos, no brands, no text inside the image.</b> A generated
+      logo always resembles somebody's real one, and generated lettering comes
+      out deformed.</li>
+      <li><b>No invented screenshots of a project.</b> The three real projects
+      already have real pages; a fake interface beside them would discredit
+      the real ones.</li>
+    </ul>
+    <p class="note">Everything asked for below is abstract, dark, and works
+    behind white text.</p>
+  </div>
+  {lignes}
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-h"><h2>What the site does without them</h2></div>
+  <p class="chapeau">Nothing on the site is broken while these are missing.
+  The star field in the header is drawn in code, not from a photograph &mdash;
+  a 400&nbsp;KB sky for an effect that dots and a gradient produce would be
+  wasted on the very first thing a visitor downloads. The images above add
+  texture; they do not hold the layout up.</p>
 </div></section>
 """
 
@@ -506,12 +616,13 @@ if __name__ == "__main__":
 
     page("index.html", f"{MARQUE} — {BASELINE.lower()}",
          "A web studio that ships sites and applications with the automatic "
-         "checks that prove they work. Three projects live, all linked.",
+         "checks that prove they work. Three projects live on this page, "
+         "all linked.",
          accueil())
-    page("work.html", f"Work — {MARQUE}",
-         f"{len(TRAVAUX)} projects, live and linked, with the size of each "
-         "one's automatic check suite. No invented client, no logo wall.",
-         page_travail())
+    page("images.html", f"Images to generate — {MARQUE}",
+         f"{len(IMAGES)} image briefs with exact file names, pixel sizes and "
+         "prompts. No faces, no logos, no invented screenshots.",
+         page_images())
     page("services.html", f"Services — {MARQUE}",
          "Four web development services, the eleven names clients give them, "
          "and the five things that move a quote.", services_index())

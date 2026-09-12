@@ -6,7 +6,7 @@
 <title>Web development in Dubai — Modersly</title>
 <meta name="description" content="Websites and applications built to order in Dubai, Dubai, United Arab Emirates. Four services, reachable in Arabic, English. Middle East coverage.">
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="assets/site.css?v=3">
+<link rel="stylesheet" href="assets/site.css?v=4">
 </head>
 <body>
 
@@ -19,7 +19,7 @@
 
 <header class="top"><div class="wrap bar">
   <a class="marque" href="index.html"><span class="dot"></span>Modersly</a>
-  <nav class="nav"><a href="index.html">Studio</a><a href="work.html">Work</a><a href="services.html">Services</a><a href="villes.html" aria-current="page">Locations</a><a href="plan.html">The plan</a></nav>
+  <nav class="nav"><a href="index.html">Studio</a><a href="index.html#work">Work</a><a href="services.html">Services</a><a href="villes.html" aria-current="page">Locations</a><a href="images.html">Images</a><a href="plan.html">The plan</a></nav>
 </div></header>
 
 <main>
@@ -75,6 +75,26 @@
   Modersly &mdash; a modern web studio. No price list, no invented client,
   no fabricated testimonial. Every project shown is live and linked.
 </div></footer>
+
+<script>
+/* Les effets ne s'activent QUE si le visiteur accepte les animations, et le
+   contenu est visible par defaut : la classe qui le cache n'est posee que si
+   l'observateur existe vraiment. Un effet qui cache le contenu quand il
+   echoue n'est pas un effet, c'est une panne. */
+(function () {
+  var bouge = window.matchMedia
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!bouge || !('IntersectionObserver' in window)) return;
+
+  document.documentElement.classList.add('anime');
+  var vus = new IntersectionObserver(function (entrees) {
+    entrees.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('vu'); vus.unobserve(e.target); }
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  document.querySelectorAll('.rev').forEach(function (el) { vus.observe(el); });
+})();
+</script>
 
 </body>
 </html>

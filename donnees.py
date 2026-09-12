@@ -170,3 +170,90 @@ PROPOSE = {
     "pages_service": len(SERVICES),
 }
 PROPOSE["total"] = PROPOSE["pages_ville"] + PROPOSE["pages_service"] + 3
+
+
+# --- LES IMAGES A GENERER --------------------------------------------------
+# Il a demande « give me images to generate » : il les produit lui-meme avec
+# son outil, j'ecris les consignes. Chaque entree porte le nom de fichier
+# exact, les dimensions exactes et le texte a coller.
+#
+# TROIS REGLES DANS TOUTES LES CONSIGNES, ET ELLES NE SONT PAS DECORATIVES :
+#   1. AUCUN VISAGE RECONNAISSABLE. Un visage genere sur un site d'agence se
+#      lit comme une photo d'equipe : c'est une personne inventee presentee
+#      comme un collaborateur.
+#   2. AUCUN LOGO, AUCUNE MARQUE, AUCUN TEXTE DANS L'IMAGE. Un logo genere
+#      ressemble toujours a celui de quelqu'un, et le texte genere sort
+#      deforme.
+#   3. AUCUNE CAPTURE D'ECRAN INVENTEE d'un projet. Les trois projets reels
+#      ont deja leurs vraies pages ; une fausse interface a cote d'elles
+#      decredibiliserait les vraies.
+#
+# (nom de fichier, role, largeur, hauteur, consigne)
+IMAGES = [
+    ("og-modersly.jpg", "Image de partage (reseaux sociaux, aperçu de lien)",
+     1200, 630,
+     "Abstract dark composition for a web studio: deep near-black background "
+     "(#050506), a soft field of tiny light points concentrated in the upper "
+     "third like the starlight headliner of a luxury car, fading to pure "
+     "black at the bottom. One thin diagonal ribbon of lime green (#C8FF4D) "
+     "light crossing the lower left. Cinematic, minimal, high contrast, no "
+     "text, no logo, no people, no user interface. 16:9."),
+    ("hero-fond.jpg", "Fond optionnel derriere le titre d'accueil",
+     2400, 1400,
+     "Extreme close-up of brushed dark metal or carbon weave, almost black, "
+     "lit by a single raking light from the top left so the texture is barely "
+     "visible. Very low contrast, no colour except a faint warm grey. Must "
+     "stay readable behind large white text. No text, no logo, no people, no "
+     "reflections of a room. 12:7."),
+    ("services-web-development.jpg", "Vignette du service Web development",
+     1600, 1000,
+     "Abstract macro photograph of layered translucent dark glass sheets, "
+     "edge-lit with a thin lime green (#C8FF4D) line where two layers meet. "
+     "Studio lighting on black. Sharp, minimal, no text, no logo, no screens, "
+     "no people. 8:5."),
+    ("services-web-design-development.jpg",
+     "Vignette du service Web design &amp; development", 1600, 1000,
+     "Abstract still life on black: three matte paper rectangles of slightly "
+     "different greys, overlapping at precise right angles, one thin lime "
+     "green (#C8FF4D) edge catching the light. Top-down, soft shadow, "
+     "architectural. No text, no logo, no people. 8:5."),
+    ("services-web-application-development.jpg",
+     "Vignette du service Web application development", 1600, 1000,
+     "Abstract macro of a dark anodised aluminium grid or heatsink fins, "
+     "receding into shadow, one fin catching a lime green (#C8FF4D) "
+     "reflection. Industrial, precise, black background. No text, no logo, "
+     "no screens, no people. 8:5."),
+    ("services-web-engineering.jpg", "Vignette du service Web engineering",
+     1600, 1000,
+     "Abstract close-up of a dark braided steel cable under tension against "
+     "black, single hard light from the right, one strand picking up a lime "
+     "green (#C8FF4D) highlight. Strong, minimal, no text, no logo, no "
+     "people. 8:5."),
+    ("region-amerique-nord.jpg", "Bandeau de la region USA & Canada",
+     1800, 700,
+     "Night aerial of a generic North American downtown grid seen from very "
+     "high up, lights reduced to a fine mesh of warm points on near-black, "
+     "heavy atmospheric haze, no recognisable landmark, no skyline "
+     "silhouette that identifies a real city. Desaturated, cinematic. No "
+     "text, no logo, no people. 18:7."),
+    ("region-europe.jpg", "Bandeau de la region Europe", 1800, 700,
+     "Night aerial of a dense irregular old-city street pattern from very "
+     "high up, warm points of light on near-black, river cutting through as "
+     "a black ribbon, heavy haze, no recognisable landmark. Desaturated, "
+     "cinematic. No text, no logo, no people. 18:7."),
+    ("region-moyen-orient.jpg", "Bandeau de la region Middle East", 1800, 700,
+     "Night aerial of a coastal city edge meeting dark water, sparse "
+     "geometric blocks of warm light on near-black, sand haze in the air, no "
+     "recognisable tower or landmark. Desaturated, cinematic. No text, no "
+     "logo, no people. 18:7."),
+    ("region-asie.jpg", "Bandeau de la region Asia", 1800, 700,
+     "Night aerial of an extremely dense high-rise district from very high "
+     "up, thousands of tiny cool-white window lights on near-black, low "
+     "cloud passing below, no recognisable landmark. Desaturated, cinematic. "
+     "No text, no logo, no people. 18:7."),
+    ("favicon-modersly.png", "Favicon / icone d'onglet", 512, 512,
+     "A single solid lime green (#C8FF4D) circle, perfectly centred, on a "
+     "pure near-black (#050506) square background. The circle occupies about "
+     "42 percent of the width. Flat, no gradient, no shadow, no text, no "
+     "letter, no logo, no people. 1:1."),
+]
