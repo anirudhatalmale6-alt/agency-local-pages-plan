@@ -50,10 +50,11 @@ img{max-width:100%}
 .top{position:sticky;top:0;z-index:50;background:rgba(5,5,6,.72);
   backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid var(--trait)}
 .bar{display:flex;align-items:center;gap:28px;padding:16px 26px;flex-wrap:wrap}
-.marque{font-weight:800;letter-spacing:-.04em;font-size:21px;text-decoration:none;
-  color:var(--txt);display:flex;align-items:center;gap:10px}
-.marque .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
-  box-shadow:0 0 18px var(--accent)}
+/* La marque est le LOGO, pas du texte : les lettres sont des courbes, donc
+   elles ont la meme forme partout, y compris chez qui n'a pas la police. */
+.marque{display:flex;align-items:center;text-decoration:none;line-height:0}
+.marque img{width:150px;height:auto;display:block}
+@media (max-width:660px){.marque img{width:124px}}
 .nav{margin-left:auto;display:flex;gap:24px;flex-wrap:wrap;font-size:14.5px}
 .nav a{color:var(--gris);text-decoration:none;padding:3px 0;
   border-bottom:2px solid transparent}

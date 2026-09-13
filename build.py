@@ -15,7 +15,7 @@ from donnees import (BASELINE, ETAPES, GRILLE, IMAGES, MARQUE, SERVICES,
 from villes import PAYS_NOM, REGIONS, TOUTES
 
 RACINE = os.path.dirname(os.path.abspath(__file__))
-VERSION_CSS = 5
+VERSION_CSS = 6
 E = html.escape
 ECRITES = set()
 
@@ -128,7 +128,9 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
 <title>{E(titre)}</title>
 <meta name="description" content="{E(description)}">
 <meta name="robots" content="noindex,nofollow">
-{alternates}<link rel="stylesheet" href="assets/site.css?v={VERSION_CSS}">
+{alternates}<link rel="icon" type="image/svg+xml" href="assets/modersly-favicon.svg">
+<link rel="apple-touch-icon" href="assets/modersly-icone.svg">
+<link rel="stylesheet" href="assets/site.css?v={VERSION_CSS}">
 </head>
 <body>
 
@@ -140,7 +142,9 @@ def page(fichier, titre, description, corps, actuel=None, alternates=""):
 </div></div>
 
 <header class="top"><div class="wrap bar">
-  <a class="marque" href="index.html"><span class="dot"></span>{E(MARQUE)}</a>
+  <a class="marque" href="index.html" aria-label="{E(MARQUE)}, accueil">
+    <img src="assets/modersly-logo-sombre.svg" alt="{E(MARQUE)}" width="150" height="39">
+  </a>
   <nav class="nav">{nav}</nav>
 </div></header>
 

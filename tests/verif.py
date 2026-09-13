@@ -83,8 +83,33 @@ with sync_playwright() as p:
     pg.goto(f"{BASE}/index.html", wait_until="networkidle")
     verif("le nom du studio est celui qu'il a donne",
           MARQUE == "Modersly", MARQUE)
-    verif("index : la marque est affichee",
-          MARQUE in pg.inner_text(".marque"), pg.inner_text(".marque"))
+    # La marque est maintenant le LOGO. Deux choses a prouver, et la seconde
+    # est celle qu'on oublie : le nom doit rester lisible par une machine
+    # (alt), ET le fichier doit reellement se charger. Un SVG manquant laisse
+    # le texte alternatif en place — un controle sur l'alt seul passerait au
+    # vert sur un logo casse.
+    logo = pg.evaluate("""() => {
+        const i = document.querySelector('.marque img');
+        return i ? { alt: i.alt, nat: i.naturalWidth, src: i.getAttribute('src') }
+                 : null; }""")
+    verif("index : l'en-tete porte le logo", logo is not None, "aucune image")
+    verif("index : le logo porte le nom en texte alternatif",
+          logo and logo["alt"] == MARQUE, str(logo))
+    verif("index : le fichier du logo se charge vraiment",
+          logo and logo["nat"] > 0, str(logo))
+    # naturalWidth ne suffit PAS. Mesure faite : un SVG VIDE mais present
+    # repond 200 et rend naturalWidth=300 (valeur par defaut du navigateur),
+    # donc le controle ci-dessus le laisserait passer alors que l'en-tete
+    # n'affiche plus rien. Seul le contenu du fichier tranche.
+    with urllib.request.urlopen(f"{BASE}/{logo['src']}") as r:
+        svg_logo = r.read().decode("utf-8")
+    verif("index : le logo contient bien un trace",
+          svg_logo.count("<path") >= 5, f"{svg_logo.count('<path')} traces")
+    verif("index : le logo porte le point vert de la marque",
+          "#C8FF4D" in svg_logo.upper(), "couleur d'accent absente")
+    ico = pg.evaluate("() => document.querySelector('link[rel=icon]')"
+                      "?.getAttribute('href')")
+    verif("index : une icone de favori est declaree", bool(ico), str(ico))
     verif("index : la page est declaree en anglais",
           pg.evaluate("() => document.documentElement.lang") == "en",
           pg.evaluate("() => document.documentElement.lang"))
