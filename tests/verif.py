@@ -22,7 +22,8 @@ sys.path.insert(0, RACINE)
 from playwright.sync_api import sync_playwright
 
 from build import PROPOSE
-from donnees import GRILLE, IMAGES, MARQUE, SERVICES, TERMES, TRAVAUX
+from donnees import (GRILLE, IMAGES, MARQUE, SERVICES, TEL_AFFICHE, TERMES,
+                     TRAVAUX, WHATSAPP)
 from villes import REGIONS, TOUTES
 
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8941").rstrip("/")
@@ -320,16 +321,23 @@ with sync_playwright() as p:
     verif("la lecture des descriptions n'est pas vide",
           len(descriptions) > 200, str(len(descriptions)))
 
-    # ---- 10. LE THEME NOIR -----------------------------------------------
-    # Demande le 11 septembre. Lu sur la couleur CALCULEE par le navigateur.
+    # ---- 10. LE THEME NOIR RESTE LE DEFAUT --------------------------------
+    # Demande le 11 septembre : le noir est le theme du site. Depuis le
+    # 13 septembre il existe aussi un mode clair, donc ce controle se fait
+    # SOUS PREFERENCE SOMBRE — sinon il mesure le mode clair et echoue pour
+    # une bonne raison, ce qui masquerait une vraie regression du noir.
+    ctx_noir = nav.new_context(color_scheme="dark")
+    pn = ctx_noir.new_page()
+    pn.set_viewport_size({"width": 1280, "height": 800})
     for f in ("index.html", "images.html", "ville-dubai.html", "plan.html"):
-        pg.goto(f"{BASE}/{f}", wait_until="networkidle")
-        fond = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
-        txt = pg.evaluate("() => getComputedStyle(document.body).color")
+        pn.goto(f"{BASE}/{f}", wait_until="networkidle")
+        fond = pn.evaluate("() => getComputedStyle(document.body).backgroundColor")
+        txt = pn.evaluate("() => getComputedStyle(document.body).color")
         rgb = [int(x) for x in re.findall(r"\d+", fond)[:3]]
         rgbt = [int(x) for x in re.findall(r"\d+", txt)[:3]]
-        verif(f"{f} : le fond est noir", max(rgb) < 40, fond)
+        verif(f"{f} : le fond est noir en mode sombre", max(rgb) < 40, fond)
         verif(f"{f} : le texte est clair sur ce fond", min(rgbt) > 180, txt)
+    ctx_noir.close()
 
     # ---- 11. LE CIEL ETOILE ----------------------------------------------
     # « Add stars in the main slider like a RR phantom » + « Rooftop ».
@@ -410,6 +418,98 @@ with sync_playwright() as p:
     verif("images : la page rappelle les trois regles",
           "No recognisable faces" in c and "No logos" in c
           and "No invented screenshots" in c)
+
+    # ---- 14. LE MODE CLAIR ET LE MODE SOMBRE ------------------------------
+    def _lum(c):
+        c = [x / 255 for x in c]
+        c = [(v / 12.92 if v <= .03928 else ((v + .055) / 1.055) ** 2.4) for v in c]
+        return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]
+
+    def _contraste(a, b):
+        la, lb = _lum(a), _lum(b)
+        hi, lo = max(la, lb), min(la, lb)
+        return (hi + .05) / (lo + .05)
+
+    def _rgb(txt):
+        return [int(x) for x in re.findall(r"\d+", txt)[:3]]
+
+    for systeme, sombre_attendu in (("dark", True), ("light", False)):
+        ctx = nav.new_context(color_scheme=systeme)
+        pt = ctx.new_page()
+        pt.set_viewport_size({"width": 1280, "height": 800})
+        pt.goto(f"{BASE}/index.html", wait_until="networkidle")
+        pt.wait_for_timeout(300)
+        fond = _rgb(pt.evaluate("() => getComputedStyle(document.body).backgroundColor"))
+        txt = _rgb(pt.evaluate("() => getComputedStyle(document.body).color"))
+        verif(f"systeme {systeme} : le site suit le reglage du visiteur",
+              (max(fond) < 60) == sombre_attendu, str(fond))
+        # Le contraste se MESURE. « Ca a l'air lisible » n'est pas un critere,
+        # et le mode clair est precisement la ou un accent pense pour le noir
+        # devient illisible.
+        for sel, nom, seuil in ((".chapeau", "texte secondaire", 4.5),
+                                (".btn", "bouton principal", 4.5),
+                                (".nav a", "menu", 4.5)):
+            e = pt.evaluate("""(s) => { const el = document.querySelector(s);
+                const st = getComputedStyle(el);
+                let bg = st.backgroundColor, n = el;
+                while ((bg === 'rgba(0, 0, 0, 0)' || !bg) && n.parentElement) {
+                    n = n.parentElement; bg = getComputedStyle(n).backgroundColor; }
+                return { fg: st.color, bg: bg }; }""", sel)
+            c = _contraste(_rgb(e["fg"]), _rgb(e["bg"]))
+            verif(f"systeme {systeme} : {nom} atteint {seuil}:1",
+                  c >= seuil, f"{c:.2f}:1 ({e})")
+        # L'en-tete ne doit pas rester noir sur une page blanche.
+        entete = _rgb(pt.evaluate("() => getComputedStyle(document.querySelector('.top'))"
+                                  ".backgroundColor"))
+        verif(f"systeme {systeme} : l'en-tete suit le mode",
+              (max(entete) < 60) == sombre_attendu, str(entete))
+        # Le ciel etoile n'a de sens que sur fond noir.
+        ciel = pt.evaluate("() => { const c = document.querySelector('.ciel');"
+                           " return c ? getComputedStyle(c).display : 'absent'; }")
+        verif(f"systeme {systeme} : le ciel etoile n'apparait que sur le noir",
+              (ciel != "none") == sombre_attendu, ciel)
+        # Le bon logo, et lui seul.
+        vus = pt.evaluate("""() => [...document.querySelectorAll('.marque img')]
+            .filter(i => getComputedStyle(i).display !== 'none')
+            .map(i => i.className)""")
+        verif(f"systeme {systeme} : un seul logo est affiche", len(vus) == 1, str(vus))
+        ctx.close()
+
+    # Le CHOIX EXPLICITE l'emporte sur le systeme, et survit au changement de
+    # page. Sans ca, un visiteur en systeme clair ne pourrait jamais rester en
+    # noir : son systeme reprendrait la main a chaque clic du menu.
+    ctx = nav.new_context(color_scheme="light")
+    pt = ctx.new_page()
+    pt.goto(f"{BASE}/index.html", wait_until="networkidle")
+    pt.wait_for_timeout(250)
+    pt.click("#bascule")
+    pt.wait_for_timeout(250)
+    apres = _rgb(pt.evaluate("() => getComputedStyle(document.body).backgroundColor"))
+    verif("la bascule l'emporte sur le reglage du systeme", max(apres) < 60, str(apres))
+    pt.goto(f"{BASE}/services.html", wait_until="networkidle")
+    pt.wait_for_timeout(250)
+    garde = _rgb(pt.evaluate("() => getComputedStyle(document.body).backgroundColor"))
+    verif("le choix est garde d'une page a l'autre", max(garde) < 60, str(garde))
+    ctx.close()
+
+    # ---- 15. WHATSAPP ------------------------------------------------------
+    pg.goto(f"{BASE}/index.html", wait_until="networkidle")
+    lien_wa = pg.evaluate("() => { const a = document.querySelector('a.wa');"
+                          " return a ? { href: a.href, aria: a.getAttribute('aria-label'),"
+                          " cible: a.target } : null; }")
+    verif("le bouton WhatsApp est present", lien_wa is not None)
+    verif("le bouton WhatsApp pointe sur le bon numero",
+          lien_wa and lien_wa["href"].rstrip("/") == WHATSAPP, str(lien_wa))
+    verif("le bouton WhatsApp s'ouvre dans un autre onglet",
+          lien_wa and lien_wa["cible"] == "_blank", str(lien_wa))
+    # Le numero doit aussi etre LISIBLE : un bouton seul suppose que le
+    # visiteur a WhatsApp sur l'appareil qu'il tient.
+    verif("le numero est ecrit en clair dans la page",
+          TEL_AFFICHE in pg.inner_text("body"), TEL_AFFICHE)
+    for f in ("services.html", "villes.html", "ville-dubai.html", "plan.html"):
+        pg.goto(f"{BASE}/{f}", wait_until="domcontentloaded")
+        verif(f"{f} : le bouton WhatsApp y est aussi",
+              pg.locator("a.wa").count() == 1, str(pg.locator("a.wa").count()))
 
     verif("aucune erreur JavaScript", not erreurs, str(erreurs[:2]))
 

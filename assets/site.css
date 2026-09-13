@@ -27,7 +27,42 @@
   --rouge-t:rgba(255,107,107,.28);
   --ui:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --voile:rgba(5,5,6,.72);
+  --lueur:.16;
   --r:16px;
+}
+
+/* ---- LE MODE CLAIR -------------------------------------------------------
+   Le noir reste le defaut : c'est ce qu'il a demande. Le clair s'active de
+   deux facons, et la seconde l'emporte toujours sur la premiere :
+     1. le reglage du systeme du visiteur (prefers-color-scheme) ;
+     2. son choix explicite sur le site, garde d'une page a l'autre.
+   Le `:not([data-theme])` est ce qui rend cet ordre correct : sans lui, un
+   visiteur en systeme clair ne pourrait jamais choisir le noir, son systeme
+   reprendrait la main a chaque page.
+
+   L'accent lime est illisible en texte sur blanc (contraste ~1,4:1). Le mode
+   clair prend donc un vert fonce pour le TEXTE et les liens, et garde le lime
+   pour les aplats et le point du logo, ou il est decoratif. */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]){
+    --noir:#FFFFFF; --noir2:#F5F7FA; --panneau:#FFFFFF; --panneau2:#F2F4F8;
+    --trait:#E3E7ED; --trait-f:#CBD2DC;
+    --txt:#0B0C0F; --gris:#565D6B; --gris-f:#7B8496;
+    --accent:#3F7A00; --accent-f:#2F5C00; --accent-c:rgba(63,122,0,.10);
+    --ambre:#8A5A05; --ambre-c:rgba(245,181,68,.16); --ambre-t:#E8C27A;
+    --rouge:#B42318; --rouge-c:rgba(180,35,24,.06); --rouge-t:#F4C7C3;
+    --voile:rgba(255,255,255,.78); --lueur:.05;
+  }
+}
+:root[data-theme="light"]{
+  --noir:#FFFFFF; --noir2:#F5F7FA; --panneau:#FFFFFF; --panneau2:#F2F4F8;
+  --trait:#E3E7ED; --trait-f:#CBD2DC;
+  --txt:#0B0C0F; --gris:#565D6B; --gris-f:#7B8496;
+  --accent:#3F7A00; --accent-f:#2F5C00; --accent-c:rgba(63,122,0,.10);
+  --ambre:#8A5A05; --ambre-c:rgba(245,181,68,.16); --ambre-t:#E8C27A;
+  --rouge:#B42318; --rouge-c:rgba(180,35,24,.06); --rouge-t:#F4C7C3;
+  --voile:rgba(255,255,255,.78); --lueur:.05;
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -47,7 +82,7 @@ img{max-width:100%}
 .avert a{color:var(--ambre)}
 
 /* ---- header ---- */
-.top{position:sticky;top:0;z-index:50;background:rgba(5,5,6,.72);
+.top{position:sticky;top:0;z-index:50;background:var(--voile);
   backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid var(--trait)}
 .bar{display:flex;align-items:center;gap:28px;padding:16px 26px;flex-wrap:wrap}
 /* La marque est le LOGO, pas du texte : les lettres sont des courbes, donc
@@ -55,7 +90,38 @@ img{max-width:100%}
 .marque{display:flex;align-items:center;text-decoration:none;line-height:0}
 .marque img{width:150px;height:auto;display:block}
 @media (max-width:660px){.marque img{width:124px}}
-.nav{margin-left:auto;display:flex;gap:24px;flex-wrap:wrap;font-size:14.5px}
+/* ---- le bouton clair / sombre ---- */
+.bascule{margin-left:auto;background:transparent;border:1px solid var(--trait-f);
+  color:var(--gris);border-radius:999px;width:38px;height:38px;cursor:pointer;
+  display:grid;place-items:center;padding:0;flex:0 0 38px;order:3}
+.bascule:hover{color:var(--txt);border-color:var(--txt)}
+.bascule svg{width:17px;height:17px;fill:currentColor}
+/* Chaque icone ne s'affiche que dans son mode : la lune quand on est en
+   clair (« passer au sombre »), le soleil quand on est en sombre. */
+.bascule .lune{display:none}
+:root[data-theme="light"] .bascule .lune{display:block}
+:root[data-theme="light"] .bascule .soleil{display:none}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]) .bascule .lune{display:block}
+  :root:not([data-theme]) .bascule .soleil{display:none}
+}
+
+/* ---- le logo suit le mode ---- */
+.marque .clair{display:none}
+:root[data-theme="light"] .marque .clair{display:block}
+:root[data-theme="light"] .marque .sombre{display:none}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]) .marque .clair{display:block}
+  :root:not([data-theme]) .marque .sombre{display:none}
+}
+
+/* ---- le ciel etoile n'a de sens que sur fond noir ---- */
+:root[data-theme="light"] .ciel{display:none}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]) .ciel{display:none}
+}
+
+.nav{margin-left:auto;display:flex;gap:24px;flex-wrap:wrap;font-size:14.5px;order:2}
 .nav a{color:var(--gris);text-decoration:none;padding:3px 0;
   border-bottom:2px solid transparent}
 .nav a:hover{color:var(--txt)}
@@ -130,6 +196,15 @@ h1.titre{font-size:clamp(29px,4.6vw,50px);letter-spacing:-.04em;margin:0 0 14px;
   text-decoration:none;font-size:15px;letter-spacing:-.01em;
   transition:transform .15s,background .15s}
 .btn:hover{background:var(--accent-f);transform:translateY(-1px)}
+/* En mode clair l'accent devient un vert FONCE : le texte presque noir du
+   bouton n'y tient plus le contraste (mesure : 3,63:1, en dessous du seuil
+   de 4,5:1). Il passe donc en blanc, ou il remonte a plus de 5:1. */
+:root[data-theme="light"] .btn{color:#fff}
+:root[data-theme="light"] .btn:hover{color:#fff}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]) .btn{color:#fff}
+  :root:not([data-theme]) .btn:hover{color:#fff}
+}
 .btn-b{background:transparent;color:var(--txt);border-color:var(--trait-f)}
 .btn-b:hover{background:var(--panneau2);color:var(--txt)}
 .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
@@ -221,6 +296,25 @@ a.carte:hover{border-color:var(--trait-f);transform:translateY(-2px)}
   border-top:1px solid var(--trait);padding:74px 0}
 .appel h2{font-size:clamp(28px,4.6vw,52px);letter-spacing:-.045em;margin:0 0 16px;
   font-weight:800;max-width:18ch}
+
+/* ---- WhatsApp ------------------------------------------------------------
+   Bouton flottant, et le NUMERO EN CLAIR a cote dans le pied de page. Un
+   bouton seul suppose que le visiteur a WhatsApp sur l'appareil qu'il tient ;
+   sur un ordinateur de bureau, souvent non. Le numero ecrit reste utilisable
+   par tout le monde. */
+.wa{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;
+  align-items:center;gap:10px;background:#25D366;color:#04140A;
+  border-radius:999px;padding:13px 20px 13px 15px;text-decoration:none;
+  font-weight:700;font-size:15px;box-shadow:0 10px 30px -8px rgba(0,0,0,.55);
+  transition:transform .15s}
+.wa:hover{transform:translateY(-2px);color:#04140A}
+.wa svg{width:22px;height:22px;fill:currentColor;flex:0 0 22px}
+.wa .txt{white-space:nowrap}
+@media (max-width:620px){
+  .wa{right:14px;bottom:14px;padding:14px;border-radius:50%}
+  .wa .txt{display:none}
+}
+@media (prefers-reduced-motion:reduce){.wa{transition:none}.wa:hover{transform:none}}
 
 .pied{border-top:1px solid var(--trait);padding:34px 0 52px;
   color:var(--gris-f);font-size:14px}

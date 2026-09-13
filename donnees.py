@@ -257,3 +257,14 @@ IMAGES = [
      "42 percent of the width. Flat, no gradient, no shadow, no text, no "
      "letter, no logo, no people. 1:1."),
 ]
+
+
+# --- LE CONTACT ------------------------------------------------------------
+# Il a donne le numero le 13 septembre : « 5142504988 » puis « Whatsapp button
+# and number ». L'indicatif 514 est Montreal, donc +1 — JE LE LUI AI DIT
+# plutot que de le supposer en silence : un numero avec le mauvais indicatif
+# ne sonne nulle part, et personne ne s'en apercoit avant d'avoir perdu des
+# appels.
+TEL_BRUT = "15142504988"                 # ce que wa.me attend : chiffres seuls
+TEL_AFFICHE = "+1 514 250 4988"
+WHATSAPP = f"https://wa.me/{TEL_BRUT}"
